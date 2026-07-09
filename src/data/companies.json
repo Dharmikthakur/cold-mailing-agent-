@@ -1,0 +1,176 @@
+[
+  {
+    "id": "comp-1",
+    "name": "Google",
+    "industry": "Search & AI",
+    "size": "Enterprise",
+    "location": "Bangalore, India",
+    "remote": "Hybrid",
+    "description": "Google's mission is to organize the world's information and make it universally accessible and useful. The Core Infrastructure and Google Research teams are actively working on next-gen ML models and indexing platforms.",
+    "technologies": ["React", "AI", "Python", "Go", "Java", "C++", "TensorFlow", "Kubernetes"],
+    "careersPage": "https://www.google.com/about/careers/applications/",
+    "hrEmail": "jobs@google.com",
+    "linkedin": "https://www.linkedin.com/company/google",
+    "hiringContacts": [
+      {
+        "name": "Priya Sharma",
+        "role": "University Graduate Recruiter",
+        "linkedin": "https://www.linkedin.com/in/priyasharma-recruiter",
+        "source": "LinkedIn Recruiter Search"
+      },
+      {
+        "name": "Rohit Verma",
+        "role": "Engineering Recruiter",
+        "linkedin": "https://www.linkedin.com/in/rohitverma-google",
+        "source": "Public Careers Portal"
+      }
+    ]
+  },
+  {
+    "id": "comp-2",
+    "name": "Stripe",
+    "industry": "Fintech",
+    "size": "Enterprise",
+    "location": "Remote (US/Europe)",
+    "remote": "Remote",
+    "description": "Stripe is a financial infrastructure platform for the internet. Millions of companies—from the world's largest enterprises to the most ambitious startups—use Stripe to accept payments, grow their revenue, and accelerate new business opportunities.",
+    "technologies": ["React", "Ruby on Rails", "TypeScript", "Go", "AWS", "Zustand"],
+    "careersPage": "https://stripe.com/jobs",
+    "hrEmail": "careers@stripe.com",
+    "linkedin": "https://www.linkedin.com/company/stripe",
+    "hiringContacts": [
+      {
+        "name": "Alex Mercer",
+        "role": "Technical Recruiting Lead",
+        "linkedin": "https://www.linkedin.com/in/alex-mercer-stripe",
+        "source": "Stripe Careers Page"
+      }
+    ]
+  },
+  {
+    "id": "comp-3",
+    "name": "Vercel",
+    "industry": "Developer Tools",
+    "size": "Mid-sized",
+    "location": "Remote (Worldwide)",
+    "remote": "Remote",
+    "description": "Vercel provides developer tools and cloud infrastructure hosting. It is the creator of Next.js, the leading React framework for high-performance frontend engineering.",
+    "technologies": ["Next.js", "React", "Node.js", "TypeScript", "Tailwind CSS", "PostgreSQL", "MongoDB"],
+    "careersPage": "https://vercel.com/careers",
+    "hrEmail": "recruiting@vercel.com",
+    "linkedin": "https://www.linkedin.com/company/vercel",
+    "hiringContacts": [
+      {
+        "name": "Sarah Chen",
+        "role": "Lead Talent Partner (Frontend)",
+        "linkedin": "https://www.linkedin.com/in/sarahchen-vercel",
+        "source": "Vercel Team Directory"
+      }
+    ]
+  },
+  {
+    "id": "comp-4",
+    "name": "Figma",
+    "industry": "Design",
+    "size": "Enterprise",
+    "location": "San Francisco, CA",
+    "remote": "Hybrid",
+    "description": "Figma is a leading collaborative web-based design tool. Figma helps teams brainstorm, design, and bootstrap components for software interfaces.",
+    "technologies": ["React", "WebAssembly", "C++", "TypeScript", "Figma", "CSS"],
+    "careersPage": "https://www.figma.com/careers/",
+    "hrEmail": "designjobs@figma.com",
+    "linkedin": "https://www.linkedin.com/company/figma",
+    "hiringContacts": [
+      {
+        "name": "Daniel Kim",
+        "role": "Product Design Recruiting Manager",
+        "linkedin": "https://www.linkedin.com/in/danielkim-figma",
+        "source": "Public Careers Page"
+      }
+    ]
+  },
+  {
+    "id": "comp-5",
+    "name": "OpenAI",
+    "industry": "Artificial Intelligence",
+    "size": "Mid-sized",
+    "location": "San Francisco, CA",
+    "remote": "On-site",
+    "description": "OpenAI is an AI research and deployment company. Our mission is to ensure that artificial general intelligence benefits all of humanity by training helpful model assistants.",
+    "technologies": ["Python", "PyTorch", "LLMs", "React", "Next.js", "TypeScript", "Kubernetes"],
+    "careersPage": "https://openai.com/careers",
+    "hrEmail": "talent@openai.com",
+    "linkedin": "https://www.linkedin.com/company/openai",
+    "hiringContacts": [
+      {
+        "name": "Elena Rostova",
+        "role": "AI Research Recruiting Lead",
+        "linkedin": "https://www.linkedin.com/in/elena-rostova-recruitment",
+        "source": "LinkedIn Recruiter Search"
+      }
+    ]
+  },
+  {
+    "id": "comp-6",
+    "name": "Linear",
+    "industry": "SaaS",
+    "size": "Startup",
+    "location": "Remote (Worldwide)",
+    "remote": "Remote",
+    "description": "Linear helps software teams streamline projects, sprint planning, tasks, and bug tracking. It's built for speed, performance, and developer efficiency.",
+    "technologies": ["React", "TypeScript", "GraphQL", "Node.js", "Tailwind CSS", "PostgreSQL"],
+    "careersPage": "https://linear.app/careers",
+    "hrEmail": "jobs@linear.app",
+    "linkedin": "https://www.linkedin.com/company/linear-app",
+    "hiringContacts": [
+      {
+        "name": "Markus Aurel",
+        "role": "Founding Engineer & Hiring Manager",
+        "linkedin": "https://www.linkedin.com/in/markus-linear",
+        "source": "Linear Handbook"
+      }
+    ]
+  },
+  {
+    "id": "comp-7",
+    "name": "SkillHigh",
+    "industry": "EdTech",
+    "size": "Startup",
+    "location": "Noida, India",
+    "remote": "Remote",
+    "description": "SkillHigh is an online learning and career readiness platform providing students with technical skills, mentoring, and internships.",
+    "technologies": ["React", "Node.js", "Express", "MongoDB", "REST APIs", "Git", "JavaScript"],
+    "careersPage": "https://skillhigh.com/careers",
+    "hrEmail": "contact@skillhigh.com",
+    "linkedin": "https://www.linkedin.com/company/skillhigh",
+    "hiringContacts": [
+      {
+        "name": "Aman Verma",
+        "role": "Co-founder & Head of Growth",
+        "linkedin": "https://www.linkedin.com/in/aman-skillhigh",
+        "source": "LinkedIn Company Page"
+      }
+    ]
+  },
+  {
+    "id": "comp-8",
+    "name": "Duolingo",
+    "industry": "EdTech",
+    "size": "Enterprise",
+    "location": "Pittsburgh, PA",
+    "remote": "Hybrid",
+    "description": "Duolingo is the most popular language learning platform and the most downloaded education app in the world. Our mission is to make education free, fun, and available to all.",
+    "technologies": ["React Native", "Kotlin", "Swift", "Python", "AWS", "TypeScript"],
+    "careersPage": "https://careers.duolingo.com/",
+    "hrEmail": "edu-careers@duolingo.com",
+    "linkedin": "https://www.linkedin.com/company/duolingo",
+    "hiringContacts": [
+      {
+        "name": "Claire Vance",
+        "role": "Technical Recruiting Specialist",
+        "linkedin": "https://www.linkedin.com/in/clairevance-duolingo",
+        "source": "Duolingo Careers Directory"
+      }
+    ]
+  }
+]

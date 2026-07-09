@@ -1,0 +1,104 @@
+[
+  {
+    "id": "job-1",
+    "title": "Software Engineer Intern",
+    "company": "Google",
+    "location": "Bangalore, India (Hybrid)",
+    "type": "Internship",
+    "salary": "₹80,000/month",
+    "postedDate": "1 day ago",
+    "description": "We are looking for a Software Engineering Intern to join our Core Infrastructure team. You will work on building reliable, scalable systems that power our search and indexing platform. You will write code, build prototypes, and collaborate with experienced engineers.",
+    "requirements": [
+      "Currently pursuing a Bachelor's, Master's, or PhD in Computer Science or related technical field.",
+      "Experience with programming in Java, C++, Python, or Go.",
+      "Solid understanding of algorithms, data structures, and software design principles.",
+      "Good communication and teamwork skills."
+    ],
+    "skills": ["Python", "Java", "C++", "Go", "Algorithms", "Data Structures"]
+  },
+  {
+    "id": "job-2",
+    "title": "Frontend Engineer (React)",
+    "company": "Stripe",
+    "location": "Remote (US/Europe)",
+    "type": "Full-time",
+    "salary": "$125,000 - $145,000/year",
+    "postedDate": "3 days ago",
+    "description": "Stripe is building the financial infrastructure for the internet. As a Frontend Engineer, you will build beautiful, accessible web interfaces for our merchants and developers worldwide. You will collaborate closely with product designers and backend engineers to build seamless client-side flows.",
+    "requirements": [
+      "3+ years of professional web development experience using React.js and modern JavaScript.",
+      "Deep knowledge of HTML5, CSS3, Tailwind CSS, and web accessibility standard (WCAG).",
+      "Experience with state management libraries (Redux, Zustand) and client-side testing (Jest, React Testing Library).",
+      "Strong aesthetic sense and passion for building smooth, responsive user experiences."
+    ],
+    "skills": ["React.js", "TypeScript", "JavaScript", "HTML5", "CSS3", "Tailwind CSS", "Zustand"]
+  },
+  {
+    "id": "job-3",
+    "title": "Full Stack Developer",
+    "company": "Vercel",
+    "location": "Remote (Worldwide)",
+    "type": "Full-time",
+    "salary": "$135,000 - $160,000/year",
+    "postedDate": "Just now",
+    "description": "Vercel provides developer tools and cloud hosting platforms. You will work on our Next.js dashboard, enhancing the user experience, building out new collaboration tools, and integrating serverless middleware. You'll work on both client-side design and API design.",
+    "requirements": [
+      "Strong background in Next.js, React, Node.js, and TypeScript.",
+      "Familiarity with serverless runtimes, Edge functions, and database layers (PostgreSQL, MongoDB).",
+      "Experience writing high-performance, responsive code with clean visual styling.",
+      "Proficient in modern Git workflows and CI/CD pipelines."
+    ],
+    "skills": ["Next.js", "React.js", "Node.js", "TypeScript", "MongoDB", "PostgreSQL", "Tailwind CSS"]
+  },
+  {
+    "id": "job-4",
+    "title": "AI Research & Development Intern",
+    "company": "Microsoft",
+    "location": "Hyderabad, India (Hybrid)",
+    "type": "Internship",
+    "salary": "₹1,00,000/month",
+    "postedDate": "2 days ago",
+    "description": "Join our Microsoft Research team working on next-generation LLM agents and multi-agent workflows. You will run experiments, implement prompt engineering techniques, construct datasets, and build helper tools using Python and PyTorch.",
+    "requirements": [
+      "Pursuing a degree in CS, AI, Math, or equivalent (final year students preferred).",
+      "Proficient in Python and machine learning frameworks like PyTorch or TensorFlow.",
+      "Experience working with OpenAI APIs, Hugging Face transformers, or vector databases (Pinecone, Milvus).",
+      "Familiarity with building AI-agent systems or retrieval-augmented generation (RAG)."
+    ],
+    "skills": ["Python", "PyTorch", "LLMs", "OpenAI API", "Hugging Face", "Vector Databases", "AI Agents"]
+  },
+  {
+    "id": "job-5",
+    "title": "UI/UX Design Intern",
+    "company": "Figma",
+    "location": "Remote (US)",
+    "type": "Internship",
+    "salary": "$5,000/month",
+    "postedDate": "5 days ago",
+    "description": "Figma is seeking a product design intern to join our core editor design team. You will conduct user research, draw wireframes, build high-fidelity interactive prototypes in Figma, and coordinate with developers to ensure implementation aligns with design assets.",
+    "requirements": [
+      "Portfolio showcasing UX/UI projects, wireframes, user journeys, and final high-fidelity UI screens.",
+      "Expert knowledge of Figma software, components, autolayout, and prototyping flows.",
+      "Good understanding of CSS layouts, flexbox, grid, and frontend animations.",
+      "Ability to translate user feedback into clean, intuitive interfaces."
+    ],
+    "skills": ["UI/UX Design", "Figma", "Prototyping", "Wireframing", "CSS", "User Research"]
+  },
+  {
+    "id": "job-6",
+    "title": "Full Stack Developer Intern",
+    "company": "SkillHigh",
+    "location": "Remote (India)",
+    "type": "Internship",
+    "salary": "₹20,000 - ₹30,000/month",
+    "postedDate": "4 days ago",
+    "description": "As a Full Stack Intern, you will work on our learning portal. You will build new dashboard features, set up REST APIs, connect database collections in MongoDB, and work with React frontend elements. This is a fast-paced environment where you will ship production code.",
+    "requirements": [
+      "Good knowledge of JavaScript/TypeScript, React.js, Node.js, and Express.",
+      "Experience with database design in MongoDB or SQL.",
+      "Basic understanding of Git/GitHub, deploying on Vercel or Heroku.",
+      "Self-motivated and eager to learn new libraries quickly."
+    ],
+    "skills": ["React.js", "Node.js", "JavaScript", "Express", "MongoDB", "REST APIs", "Git"]
+  }
+]
