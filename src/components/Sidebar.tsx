@@ -45,7 +45,7 @@ export default function Sidebar({ activeTab, setActiveTab, isDarkMode, onToggleT
               ? "from-pink-400 via-purple-300 to-indigo-300 drop-shadow-[0_0_10px_rgba(236,72,153,0.3)]" 
               : "from-slate-900 via-slate-800 to-slate-700"
           }`}>
-            JobPilot AI
+            Apply Mate
           </h1>
           <span className={`text-[10px] font-semibold tracking-wider uppercase ${
             isDarkMode ? "text-purple-400" : "text-blue-400"

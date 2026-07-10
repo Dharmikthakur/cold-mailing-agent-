@@ -156,7 +156,7 @@ export default function Home() {
       company: job.company,
       status,
       date: new Date().toISOString().split('T')[0],
-      notes: `Tracked from JobPilot search. Salary: ${job.salary}.`,
+      notes: `Tracked from Apply Mate search. Salary: ${job.salary}.`,
       followUpDate: followUpDate || autoFollowUp
     };
 

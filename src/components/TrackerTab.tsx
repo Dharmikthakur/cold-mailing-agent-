@@ -53,7 +53,11 @@ export default function TrackerTab({
   const [editingNotesText, setEditingNotesText] = useState('');
   const [editingFollowUpDate, setEditingFollowUpDate] = useState('');
 
-  const todayStr = new Date().toISOString().split('T')[0];
+  const [todayStr, setTodayStr] = useState<string>('');
+
+  React.useEffect(() => {
+    setTodayStr(new Date().toISOString().split('T')[0]);
+  }, []);
 
   const columns: { label: string; key: Application['status']; color: string; border: string }[] = [
     { label: 'Bookmarked', key: 'bookmarked', color: 'bg-slate-500/10 text-slate-400', border: 'border-slate-800' },
@@ -94,6 +98,7 @@ export default function TrackerTab({
     return (
       (app.status === 'applied' || app.status === 'interviewing') &&
       app.followUpDate &&
+      todayStr &&
       app.followUpDate <= todayStr
     );
   };

@@ -7,7 +7,11 @@ import {
   BookOpen, 
   CheckCircle,
   ThumbsUp,
-  AlertCircle
+  AlertCircle,
+  Volume2,
+  VolumeX,
+  Mic,
+  MicOff
 } from 'lucide-react';
 
 interface Job {
@@ -49,6 +53,112 @@ export default function InterviewTab({ selectedJob, jobsList }: InterviewTabProp
   const [showModelAnswer, setShowModelAnswer] = useState(false);
   const [sessionFinished, setSessionFinished] = useState(false);
 
+  const [speakingText, setSpeakingText] = useState<string | null>(null);
+  const [isListening, setIsListening] = useState(false);
+  const [recognition, setRecognition] = useState<any>(null);
+  const [sttSupported, setSttSupported] = useState(false);
+
+  // Cleanup speech synthesis on unmount
+  useEffect(() => {
+    return () => {
+      if (typeof window !== 'undefined' && window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+      }
+    };
+  }, []);
+
+  // Initialize Speech Recognition
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      if (SpeechRecognition) {
+        setSttSupported(true);
+        const rec = new SpeechRecognition();
+        rec.continuous = true;
+        rec.interimResults = true;
+        rec.lang = 'en-US';
+
+        rec.onresult = (event: any) => {
+          let interimTranscript = '';
+          let finalTranscript = '';
+
+          for (let i = event.resultIndex; i < event.results.length; ++i) {
+            if (event.results[i].isFinal) {
+              finalTranscript += event.results[i][0].transcript;
+            } else {
+              interimTranscript += event.results[i][0].transcript;
+            }
+          }
+
+          if (finalTranscript) {
+            setUserAnswer(prev => {
+              const spacing = prev.trim().length > 0 ? ' ' : '';
+              return prev + spacing + finalTranscript;
+            });
+          }
+        };
+
+        rec.onend = () => {
+          setIsListening(false);
+        };
+
+        rec.onerror = (err: any) => {
+          console.error('STT recognition error:', err);
+          setIsListening(false);
+        };
+
+        setRecognition(rec);
+      }
+    }
+  }, []);
+
+  const handleSpeak = (text: string, id: string) => {
+    if (typeof window === 'undefined') return;
+
+    if (isListening && recognition) {
+      recognition.stop();
+      setIsListening(false);
+    }
+    
+    if (window.speechSynthesis.speaking) {
+      window.speechSynthesis.cancel();
+      if (speakingText === id) {
+        setSpeakingText(null);
+        return;
+      }
+    }
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.onend = () => {
+      setSpeakingText(null);
+    };
+    utterance.onerror = () => {
+      setSpeakingText(null);
+    };
+    setSpeakingText(id);
+    window.speechSynthesis.speak(utterance);
+  };
+
+  const handleToggleListen = () => {
+    if (!recognition) return;
+
+    if (isListening) {
+      recognition.stop();
+      setIsListening(false);
+    } else {
+      if (typeof window !== 'undefined' && window.speechSynthesis.speaking) {
+        window.speechSynthesis.cancel();
+        setSpeakingText(null);
+      }
+      try {
+        recognition.start();
+        setIsListening(true);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+  };
+
   // Sync selected job
   useEffect(() => {
     if (selectedJob) {
@@ -60,6 +170,14 @@ export default function InterviewTab({ selectedJob, jobsList }: InterviewTabProp
 
   const handleStartSession = async () => {
     try {
+      if (typeof window !== 'undefined' && window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+        setSpeakingText(null);
+      }
+      if (isListening && recognition) {
+        recognition.stop();
+        setIsListening(false);
+      }
       setLoadingQuestions(true);
       setQuestions([]);
       setCurrentIdx(0);
@@ -119,6 +237,14 @@ export default function InterviewTab({ selectedJob, jobsList }: InterviewTabProp
   };
 
   const handleNext = () => {
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+      setSpeakingText(null);
+    }
+    if (isListening && recognition) {
+      recognition.stop();
+      setIsListening(false);
+    }
     setUserAnswer('');
     setEvaluation(null);
     setShowModelAnswer(false);
@@ -214,21 +340,61 @@ export default function InterviewTab({ selectedJob, jobsList }: InterviewTabProp
                 </span>
               </div>
               
-              <div className="flex gap-3">
-                <HelpCircle className="h-5 w-5 text-indigo-400 shrink-0 mt-0.5" />
-                <p className="text-sm font-semibold text-slate-250 leading-relaxed">
-                  {questions[currentIdx].question}
-                </p>
+              <div className="flex justify-between items-start gap-4">
+                <div className="flex gap-3">
+                  <HelpCircle className="h-5 w-5 text-indigo-400 shrink-0 mt-0.5" />
+                  <p className="text-sm font-semibold text-slate-250 leading-relaxed">
+                    {questions[currentIdx].question}
+                  </p>
+                </div>
+                <button
+                  onClick={() => handleSpeak(questions[currentIdx].question, `q-${questions[currentIdx].id}`)}
+                  className={`p-2 rounded-lg border transition-all shrink-0 ${
+                    speakingText === `q-${questions[currentIdx].id}`
+                      ? 'bg-indigo-500/10 border-indigo-500/30 text-indigo-400'
+                      : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-205'
+                  }`}
+                  title="Read Question Aloud"
+                >
+                  {speakingText === `q-${questions[currentIdx].id}` ? (
+                    <VolumeX className="h-4 w-4 animate-pulse" />
+                  ) : (
+                    <Volume2 className="h-4 w-4" />
+                  )}
+                </button>
               </div>
             </div>
 
             {/* Answer Text Input */}
             <div className="glass-card p-5 space-y-4">
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-400">Your Structured Answer</label>
+                <div className="flex justify-between items-center">
+                  <label className="text-xs font-semibold text-slate-400">Your Structured Answer</label>
+                  {sttSupported && (
+                    <button
+                      onClick={handleToggleListen}
+                      disabled={!!evaluation || submittingAnswer}
+                      className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-[10px] font-bold border transition-all ${
+                        isListening 
+                          ? 'bg-rose-500/10 text-rose-450 border-rose-500/30 animate-pulse' 
+                          : 'bg-slate-900 text-slate-400 border-slate-800 hover:text-slate-250 hover:border-slate-700'
+                      }`}
+                    >
+                      {isListening ? (
+                        <>
+                          <MicOff className="h-3.5 w-3.5 text-rose-400" /> Stop Listening
+                        </>
+                      ) : (
+                        <>
+                          <Mic className="h-3.5 w-3.5 text-slate-400" /> Answer with Voice
+                        </>
+                      )}
+                    </button>
+                  )}
+                </div>
                 <textarea
                   rows={6}
-                  placeholder="Type your response here. For behavioral questions, structure your answer using the STAR method (Situation, Task, Action, Result)..."
+                  placeholder={sttSupported ? "Type your response here or click 'Answer with Voice' to speak..." : "Type your response here. For behavioral questions, structure your answer using the STAR method..."}
                   value={userAnswer}
                   onChange={(e) => setUserAnswer(e.target.value)}
                   disabled={!!evaluation || submittingAnswer}
@@ -258,14 +424,31 @@ export default function InterviewTab({ selectedJob, jobsList }: InterviewTabProp
             {/* Evaluation Results Card */}
             {evaluation && (
               <div className="glass-card p-5 space-y-4 animate-slide-in">
-                <div className="flex gap-4 items-center">
-                  <div className={`h-14 w-14 rounded-xl flex items-center justify-center text-2xl font-black ${getGradeStyle(evaluation.grade)}`}>
-                    {evaluation.grade}
+                <div className="flex justify-between items-start">
+                  <div className="flex gap-4 items-center">
+                    <div className={`h-14 w-14 rounded-xl flex items-center justify-center text-2xl font-black ${getGradeStyle(evaluation.grade)}`}>
+                      {evaluation.grade}
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Coach Rating</h4>
+                      <span className="text-sm font-bold text-slate-200 mt-0.5 block">{getGradeHeading(evaluation.grade)}</span>
+                    </div>
                   </div>
-                  <div>
-                    <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Coach Rating</h4>
-                    <span className="text-sm font-bold text-slate-200 mt-0.5 block">{getGradeHeading(evaluation.grade)}</span>
-                  </div>
+                  <button
+                    onClick={() => handleSpeak(evaluation.feedback, 'feedback')}
+                    className={`p-2 rounded-lg border transition-all shrink-0 ${
+                      speakingText === 'feedback'
+                        ? 'bg-indigo-500/10 border-indigo-500/30 text-indigo-400'
+                        : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200'
+                    }`}
+                    title="Read Feedback Aloud"
+                  >
+                    {speakingText === 'feedback' ? (
+                      <VolumeX className="h-4 w-4 animate-pulse" />
+                    ) : (
+                      <Volume2 className="h-4 w-4" />
+                    )}
+                  </button>
                 </div>
 
                 <div className="p-3.5 rounded-xl border border-slate-900 bg-slate-900/10 text-xs text-slate-350 leading-relaxed flex gap-2">

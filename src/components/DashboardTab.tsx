@@ -35,8 +35,12 @@ interface DashboardTabProps {
 }
 
 export default function DashboardTab({ stats, applications, onNavigate }: DashboardTabProps) {
-  // Constants for calculations
-  const todayStr = new Date().toISOString().split('T')[0];
+  // Constants for calculations defered to client mount
+  const [todayStr, setTodayStr] = React.useState<string>('');
+
+  React.useEffect(() => {
+    setTodayStr(new Date().toISOString().split('T')[0]);
+  }, []);
 
   const bookmarkedCount = applications.filter(app => app.status === 'bookmarked').length;
   const sentCount = applications.filter(app => app.status !== 'bookmarked').length;
@@ -53,7 +57,7 @@ export default function DashboardTab({ stats, applications, onNavigate }: Dashbo
   const dueFollowUps = applications.filter(app => 
     (app.status === 'applied' || app.status === 'interviewing') &&
     app.followUpDate && 
-    app.followUpDate <= todayStr
+    todayStr && app.followUpDate <= todayStr
   );
 
   const cards = [

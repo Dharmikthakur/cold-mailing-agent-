@@ -43,6 +43,8 @@ export default function CoverLetterTab({ selectedJob, jobsList, onIncrementLette
 
   // Email parameters
   const [emailType, setEmailType] = useState<'outreach' | 'followup'>('outreach');
+  const [outreachChannel, setOutreachChannel] = useState<'email' | 'linkedin-note' | 'linkedin-message'>('email');
+  const [tone, setTone] = useState<'tech-focused' | 'bold' | 'formal' | 'conversational'>('tech-focused');
   const [loading, setLoading] = useState(false);
   
   // Results
@@ -102,7 +104,9 @@ export default function CoverLetterTab({ selectedJob, jobsList, onIncrementLette
           portfolioLink,
           githubLink,
           emailType,
-          contactName: recruiterName
+          contactName: recruiterName,
+          outreachChannel,
+          tone
         })
       });
 
@@ -118,7 +122,7 @@ export default function CoverLetterTab({ selectedJob, jobsList, onIncrementLette
   };
 
   const handleCopy = () => {
-    const fullMessage = `Subject: ${subjectText}\n\n${bodyText}`;
+    const fullMessage = outreachChannel === 'linkedin-note' ? bodyText : `Subject: ${subjectText}\n\n${bodyText}`;
     navigator.clipboard.writeText(fullMessage);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -241,6 +245,35 @@ export default function CoverLetterTab({ selectedJob, jobsList, onIncrementLette
             />
           </div>
 
+          {/* Channel Selector */}
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Outreach Channel</label>
+            <select
+              value={outreachChannel}
+              onChange={(e) => setOutreachChannel(e.target.value as any)}
+              className="w-full bg-slate-900 border border-slate-800 rounded-xl py-2 px-3.5 text-xs text-slate-200 focus:outline-none"
+            >
+              <option value="email">Cold Email</option>
+              <option value="linkedin-note">LinkedIn Connection Note (300 char max)</option>
+              <option value="linkedin-message">LinkedIn Message / InMail</option>
+            </select>
+          </div>
+
+          {/* Tone Selector */}
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Message Tone</label>
+            <select
+              value={tone}
+              onChange={(e) => setTone(e.target.value as any)}
+              className="w-full bg-slate-900 border border-slate-800 rounded-xl py-2 px-3.5 text-xs text-slate-200 focus:outline-none"
+            >
+              <option value="tech-focused">Tech-Focused (Projects & Skills)</option>
+              <option value="bold">Bold & Direct (High Impact)</option>
+              <option value="formal">Formal & Polite (Traditional)</option>
+              <option value="conversational">Conversational (Warm Networking)</option>
+            </select>
+          </div>
+
           {/* Email Type selector */}
           <div className="space-y-1.5">
             <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Email Strategy</label>
@@ -275,11 +308,11 @@ export default function CoverLetterTab({ selectedJob, jobsList, onIncrementLette
           >
             {loading ? (
               <>
-                <RotateCcw className="h-4 w-4 animate-spin" /> Customizing email draft...
+                <RotateCcw className="h-4 w-4 animate-spin" /> Customizing outreach...
               </>
             ) : (
               <>
-                <Sparkles className="h-4 w-4" /> Generate Personalized Email
+                <Sparkles className="h-4 w-4" /> Generate Outreach Pitch
               </>
             )}
           </button>
@@ -293,7 +326,7 @@ export default function CoverLetterTab({ selectedJob, jobsList, onIncrementLette
             {/* Header controls */}
             <div className="border-b border-slate-900 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-950/20 shrink-0">
               <span className="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
-                <Mail className="h-4 w-4 text-indigo-400" /> Outreach Email Preview
+                <Mail className="h-4 w-4 text-indigo-400" /> {outreachChannel === 'linkedin-note' ? 'LinkedIn Connection Note Preview' : outreachChannel === 'linkedin-message' ? 'LinkedIn InMail Preview' : 'Outreach Email Preview'}
               </span>
               
               <div className="flex gap-2">
@@ -304,28 +337,55 @@ export default function CoverLetterTab({ selectedJob, jobsList, onIncrementLette
                   {copied ? (
                     <><Check className="h-3.5 w-3.5 text-emerald-500" /> Copied!</>
                   ) : (
-                    <><Copy className="h-3.5 w-3.5" /> Copy Subject & Body</>
+                    <><Copy className="h-3.5 w-3.5" /> {outreachChannel === 'linkedin-note' ? 'Copy Connection Note' : 'Copy Subject & Body'}</>
                   )}
                 </button>
-                <button
-                  onClick={handleSendEmail}
-                  className="py-1.5 px-3.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-[10px] font-bold text-white transition flex items-center gap-1.5 shadow-lg shadow-indigo-600/10"
-                >
-                  <Send className="h-3.5 w-3.5" /> Open Email Client
-                </button>
+                {outreachChannel === 'email' && (
+                  <button
+                    onClick={handleSendEmail}
+                    className="py-1.5 px-3.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-[10px] font-bold text-white transition flex items-center gap-1.5 shadow-lg shadow-indigo-600/10"
+                  >
+                    <Send className="h-3.5 w-3.5" /> Open Email Client
+                  </button>
+                )}
               </div>
             </div>
 
-            {/* Subject Line display */}
-            <div className="p-4 border-b border-slate-900/80 bg-slate-950/10 space-y-1 shrink-0">
-              <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Subject Line</span>
-              <input
-                type="text"
-                value={subjectText}
-                onChange={(e) => setSubjectText(e.target.value)}
-                className="w-full bg-transparent text-slate-200 text-xs font-bold focus:outline-none"
-              />
-            </div>
+            {/* Subject Line display - Hide for LinkedIn Notes */}
+            {outreachChannel !== 'linkedin-note' && (
+              <div className="p-4 border-b border-slate-900/80 bg-slate-950/10 space-y-1 shrink-0">
+                <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider">Subject Line</span>
+                <input
+                  type="text"
+                  value={subjectText}
+                  onChange={(e) => setSubjectText(e.target.value)}
+                  className="w-full bg-transparent text-slate-200 text-xs font-bold focus:outline-none"
+                />
+              </div>
+            )}
+
+            {/* Character Limit Indicator - Show for LinkedIn Notes */}
+            {outreachChannel === 'linkedin-note' && (
+              <div className="px-6 py-2.5 bg-slate-950/20 border-b border-slate-900/60 flex justify-between items-center text-[10px] font-semibold text-slate-400 shrink-0">
+                <span>LinkedIn character limit:</span>
+                <span className={`px-2.5 py-0.5 rounded font-extrabold border ${
+                  bodyText.length > 300 
+                    ? 'bg-rose-500/10 text-rose-450 border-rose-500/20' 
+                    : bodyText.length > 270 
+                      ? 'bg-amber-500/10 text-amber-400 border-amber-500/20' 
+                      : 'bg-slate-900 text-slate-400 border-slate-800'
+                }`}>
+                  {bodyText.length} / 300
+                </span>
+              </div>
+            )}
+
+            {/* Character Length Warning Notice */}
+            {outreachChannel === 'linkedin-note' && bodyText.length > 300 && (
+              <div className="px-6 py-2 bg-rose-500/5 text-rose-400 text-[10px] font-bold flex items-center gap-1.5 border-b border-rose-500/10 shrink-0 animate-pulse">
+                <AlertCircle className="h-3.5 w-3.5 text-rose-400" /> Warning: Connection note exceeds LinkedIn's 300-character limit!
+              </div>
+            )}
 
             {/* Email Body text area */}
             <div className="flex-1 p-6 overflow-y-auto">
@@ -336,9 +396,13 @@ export default function CoverLetterTab({ selectedJob, jobsList, onIncrementLette
               />
             </div>
 
-            <div className="p-3 border-t border-slate-900 bg-slate-950/20 text-[10px] text-slate-500 flex items-center gap-1.5 font-semibold">
+            <div className="p-3 border-t border-slate-900 bg-slate-950/20 text-[10px] text-slate-500 flex items-center gap-1.5 font-semibold shrink-0">
               <AlertCircle className="h-3.5 w-3.5 text-slate-500 shrink-0" />
-              <span>Email client will launch default application (`mailto:` link). No message will be sent without your approval.</span>
+              <span>
+                {outreachChannel === 'email' 
+                  ? "Email client will launch default application (`mailto:` link). No message will be sent without your approval."
+                  : "Copy the generated message above and paste it directly into LinkedIn."}
+              </span>
             </div>
           </div>
         ) : (
