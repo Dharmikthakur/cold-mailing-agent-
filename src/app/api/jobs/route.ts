@@ -1,6 +1,229 @@
 import { NextResponse } from 'next/server';
 import jobs from '@/data/jobs.json';
 
+// Fetch Adzuna (Localized search in India)
+async function fetchAdzuna(query: string, type: string, internship: boolean, appId: string, appKey: string) {
+  try {
+    const country = 'in';
+    let adzunaQuery = query || 'developer';
+    if (internship) adzunaQuery += ' internship';
+    if (type === 'remote') adzunaQuery += ' remote';
+    else if (type === 'hybrid') adzunaQuery += ' hybrid';
+    else if (type === 'onsite' || type === 'on-site') adzunaQuery += ' onsite';
+
+    const url = `https://api.adzuna.com/v1/api/jobs/${country}/search/1?app_id=${appId}&app_key=${appKey}&what=${encodeURIComponent(adzunaQuery)}&results_per_page=50`;
+    
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 4000);
+    const apiRes = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeoutId);
+
+    if (!apiRes.ok) throw new Error('Adzuna fetch failed');
+    const data = await apiRes.json();
+    if (!data || !Array.isArray(data.results)) return [];
+    
+    return data.results.map((item: any, index: number) => {
+      let salaryStr = 'Competitive / Unspecified';
+      if (item.salary_min) {
+        const minFormatted = Math.round(item.salary_min).toLocaleString('en-IN');
+        if (item.salary_max) {
+          const maxFormatted = Math.round(item.salary_max).toLocaleString('en-IN');
+          salaryStr = `₹${minFormatted} - ₹${maxFormatted}/year`;
+        } else {
+          salaryStr = `₹${minFormatted}/year`;
+        }
+      }
+      const cleanTitle = item.title ? item.title.replace(/<[^>]*>/g, '') : 'Software Developer';
+      const cleanDesc = item.description ? item.description.replace(/<[^>]*>/g, ' ') : '';
+      let jobType = 'Full-time';
+      if (item.contract_time === 'part_time') jobType = 'Part-time';
+      else if (item.contract_time === 'contract') jobType = 'Contract';
+
+      const skillsList = ['React.js', 'Node.js', 'JavaScript', 'Git'];
+      if (cleanTitle.toLowerCase().includes('python')) skillsList.push('Python');
+      if (cleanTitle.toLowerCase().includes('java')) skillsList.push('Java');
+      if (cleanTitle.toLowerCase().includes('design') || cleanTitle.toLowerCase().includes('ux')) skillsList.push('UI/UX Design', 'Figma');
+
+      return {
+        id: `adz-${item.id || index}`,
+        title: cleanTitle,
+        company: item.company?.display_name || 'Hiring Company',
+        location: item.location?.display_name || 'India',
+        type: item.location?.display_name?.toLowerCase().includes('remote') ? 'Remote' : jobType,
+        salary: salaryStr,
+        postedDate: item.created ? new Date(item.created).toLocaleDateString() : 'Recent (Adzuna)',
+        description: cleanDesc,
+        requirements: [
+          "Strong communication skills and collaborative team presence.",
+          "Knowledge of computer science fundamentals, algorithms, and data structures.",
+          "Hands-on coding capability matching role responsibilities."
+        ],
+        skills: skillsList
+      };
+    });
+  } catch (e) {
+    console.error('Error fetching Adzuna:', e);
+    return [];
+  }
+}
+
+// Fetch Jobicy (Global Remote jobs)
+async function fetchJobicy(query: string) {
+  try {
+    const tag = query || 'developer';
+    const url = `https://jobicy.com/api/v2/remote-jobs?count=50&tag=${encodeURIComponent(tag)}`;
+    
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 4000);
+    const apiRes = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeoutId);
+
+    if (!apiRes.ok) throw new Error('Jobicy fetch failed');
+    const data = await apiRes.json();
+    if (!data || !Array.isArray(data.jobs)) return [];
+    
+    return data.jobs.map((item: any, index: number) => {
+      let salaryStr = 'Competitive / Unspecified';
+      if (item.annualSalaryMin) {
+        const currency = item.salaryCurrency || 'USD';
+        const minFormatted = Math.round(item.annualSalaryMin).toLocaleString();
+        if (item.annualSalaryMax) {
+          const maxFormatted = Math.round(item.annualSalaryMax).toLocaleString();
+          salaryStr = `${currency} ${minFormatted} - ${maxFormatted}/yr`;
+        } else {
+          salaryStr = `${currency} ${minFormatted}/yr`;
+        }
+      }
+      const cleanTitle = item.jobTitle ? item.jobTitle.replace(/<[^>]*>/g, '') : 'Remote Developer';
+      const cleanDesc = item.jobDescription ? item.jobDescription.replace(/<[^>]*>/g, ' ') : '';
+      
+      const skillsList = ['React.js', 'Node.js', 'JavaScript', 'Git'];
+      if (cleanTitle.toLowerCase().includes('python')) skillsList.push('Python');
+      if (cleanTitle.toLowerCase().includes('java')) skillsList.push('Java');
+      if (cleanTitle.toLowerCase().includes('design') || cleanTitle.toLowerCase().includes('ux')) skillsList.push('UI/UX Design', 'Figma');
+
+      return {
+        id: `jobicy-${item.id || index}`,
+        title: cleanTitle,
+        company: item.companyName || 'Remote Org',
+        location: item.jobGeo || 'Remote',
+        type: 'Remote',
+        salary: salaryStr,
+        postedDate: item.pubDate ? new Date(item.pubDate).toLocaleDateString() : 'Recent (Jobicy)',
+        description: cleanDesc,
+        requirements: [
+          "Self-motivated and comfortable working in remote-first pipelines.",
+          "Strong communication skills and collaborative team presence.",
+          "Competence with version control systems and modern toolkits."
+        ],
+        skills: skillsList
+      };
+    });
+  } catch (e) {
+    console.error('Error fetching Jobicy:', e);
+    return [];
+  }
+}
+
+// Fetch Himalayas (Global Remote tech jobs)
+async function fetchHimalayas() {
+  try {
+    const url = `https://himalayas.app/jobs/api?limit=30`;
+    
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 4000);
+    const apiRes = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeoutId);
+
+    if (!apiRes.ok) throw new Error('Himalayas fetch failed');
+    const data = await apiRes.json();
+    if (!data || !Array.isArray(data.jobs)) return [];
+
+    return data.jobs.map((item: any, index: number) => {
+      let salaryStr = 'Competitive / Unspecified';
+      if (item.minSalary) {
+        const currency = item.salaryCurrency || '$';
+        const minFormatted = Math.round(item.minSalary).toLocaleString();
+        if (item.maxSalary) {
+          const maxFormatted = Math.round(item.maxSalary).toLocaleString();
+          salaryStr = `${currency}${minFormatted} - ${maxFormatted}/yr`;
+        } else {
+          salaryStr = `${currency}${minFormatted}/yr`;
+        }
+      }
+      const cleanTitle = item.title || 'Remote Engineer';
+      const cleanDesc = item.description || item.excerpt || 'Detailed remote engineering role.';
+      
+      const skillsList = ['React.js', 'Node.js', 'JavaScript', 'Git'];
+      if (cleanTitle.toLowerCase().includes('python')) skillsList.push('Python');
+      if (cleanTitle.toLowerCase().includes('java')) skillsList.push('Java');
+      if (cleanTitle.toLowerCase().includes('design') || cleanTitle.toLowerCase().includes('ux')) skillsList.push('UI/UX Design', 'Figma');
+
+      return {
+        id: `himalayas-${item.title.toLowerCase().replace(/[^a-z0-9]/g, '-')}-${index}`,
+        title: cleanTitle,
+        company: item.company?.name || 'Remote Corp',
+        location: item.location || 'Remote',
+        type: 'Remote',
+        salary: salaryStr,
+        postedDate: 'Recent (Himalayas)',
+        description: cleanDesc,
+        requirements: [
+          "Excellent written communication skills for asynchronous setups.",
+          "Willingness to take ownership and manage personal sprint targets.",
+          "Solid engineering fundamentals aligned with clean code standards."
+        ],
+        skills: skillsList
+      };
+    });
+  } catch (e) {
+    console.error('Error fetching Himalayas:', e);
+    return [];
+  }
+}
+
+// Fetch Arbeitnow (Global tech jobs)
+async function fetchArbeitnow() {
+  try {
+    const url = 'https://www.arbeitnow.com/api/job-board-api';
+    
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 4000);
+    const apiRes = await fetch(url, { signal: controller.signal });
+    clearTimeout(timeoutId);
+
+    if (!apiRes.ok) throw new Error('Arbeitnow fetch failed');
+    const data = await apiRes.json();
+    if (!data || !Array.isArray(data.data)) return [];
+
+    return data.data.map((job: any, index: number) => {
+      const tags = Array.isArray(job.tags) && job.tags.length > 0 
+        ? job.tags 
+        : ["React.js", "Node.js", "TypeScript", "Python"];
+        
+      return {
+        id: `ext-${job.slug || index}`,
+        title: job.title,
+        company: job.company_name,
+        location: job.location || "Remote",
+        type: job.remote ? "Remote" : "Full-time",
+        salary: "Competitive / Unspecified",
+        postedDate: "Recent (Arbeitnow)",
+        description: job.description ? job.description.replace(/<[^>]*>/g, ' ') : "A great software development opportunity.",
+        requirements: [
+          "Experience working in modern technology environments.",
+          "Familiarity with collaborative engineering guidelines and frameworks.",
+          "Detail-oriented developer with solid algorithmic fundamentals."
+        ],
+        skills: tags
+      };
+    });
+  } catch (e) {
+    console.error('Error fetching Arbeitnow:', e);
+    return [];
+  }
+}
+
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -13,142 +236,31 @@ export async function GET(request: Request) {
     const adzunaId = process.env.ADZUNA_APP_ID || '';
     const adzunaKey = process.env.ADZUNA_APP_KEY || '';
 
-    let externalJobs: any[] = [];
+    // Fire API requests in parallel concurrently
+    const fetchPromises = [
+      fetchJobicy(query),
+      fetchHimalayas(),
+      fetchArbeitnow()
+    ];
 
-    // If Adzuna credentials are provided, use Adzuna API
     if (adzunaId && adzunaKey) {
-      try {
-        console.log('Fetching live jobs from Adzuna API...');
-        const country = 'in'; // default to India search index
-        
-        // Construct Adzuna search term query
-        let adzunaQuery = query || 'developer';
-        if (internshipOnly) {
-          adzunaQuery += ' internship';
-        }
-        if (type === 'remote') {
-          adzunaQuery += ' remote';
-        } else if (type === 'hybrid') {
-          adzunaQuery += ' hybrid';
-        } else if (type === 'onsite' || type === 'on-site') {
-          adzunaQuery += ' onsite';
-        }
-
-        // Set results_per_page to 50 to retrieve a large, rich job dataset
-        const adzunaUrl = `https://api.adzuna.com/v1/api/jobs/${country}/search/1?app_id=${adzunaId}&app_key=${adzunaKey}&what=${encodeURIComponent(adzunaQuery)}&results_per_page=50`;
-        
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 4000);
-        
-        const apiRes = await fetch(adzunaUrl, { signal: controller.signal });
-        clearTimeout(timeoutId);
-
-        if (apiRes.ok) {
-          const apiData = await apiRes.json();
-          if (apiData && Array.isArray(apiData.results)) {
-            externalJobs = apiData.results.map((item: any, index: number) => {
-              // Format salary range
-              let salaryStr = 'Competitive / Unspecified';
-              if (item.salary_min) {
-                const minFormatted = Math.round(item.salary_min).toLocaleString('en-IN');
-                if (item.salary_max) {
-                  const maxFormatted = Math.round(item.salary_max).toLocaleString('en-IN');
-                  salaryStr = `₹${minFormatted} - ₹${maxFormatted}/year`;
-                } else {
-                  salaryStr = `₹${minFormatted}/year`;
-                }
-              }
-
-              // Strip HTML tags from title and description
-              const cleanTitle = item.title ? item.title.replace(/<[^>]*>/g, '') : 'Software Developer';
-              const cleanDesc = item.description ? item.description.replace(/<[^>]*>/g, ' ') : 'Detailed job requirements and description.';
-
-              // Determine work type based on contract features
-              let jobType = 'Full-time';
-              if (item.contract_time === 'part_time') {
-                jobType = 'Part-time';
-              } else if (item.contract_time === 'contract') {
-                jobType = 'Contract';
-              }
-
-              // Generate basic mock tags/skills
-              const skillsList = ['React.js', 'Node.js', 'JavaScript', 'Git'];
-              if (cleanTitle.toLowerCase().includes('python')) skillsList.push('Python');
-              if (cleanTitle.toLowerCase().includes('java')) skillsList.push('Java');
-              if (cleanTitle.toLowerCase().includes('design') || cleanTitle.toLowerCase().includes('ux')) skillsList.push('UI/UX Design', 'Figma');
-
-              return {
-                id: `adz-${item.id || index}`,
-                title: cleanTitle,
-                company: item.company?.display_name || 'Hiring Company',
-                location: item.location?.display_name || 'India',
-                type: item.location?.display_name?.toLowerCase().includes('remote') ? 'Remote' : jobType,
-                salary: salaryStr,
-                postedDate: item.created ? new Date(item.created).toLocaleDateString() : 'Recent (Adzuna)',
-                description: cleanDesc,
-                requirements: [
-                  "Strong communication skills and collaborative team presence.",
-                  "Knowledge of computer science fundamentals, algorithms, and data structures.",
-                  "Hands-on coding capability matching role responsibilities."
-                ],
-                skills: skillsList
-              };
-            });
-          }
-        }
-      } catch (adzunaErr) {
-        console.error('Adzuna API call failed, falling back to keyless Arbeitnow API:', adzunaErr);
-      }
+      fetchPromises.push(fetchAdzuna(query, type, internshipOnly, adzunaId, adzunaKey));
     }
 
-    // 2. If Adzuna credentials are not set, or Adzuna failed, fall back to keyless Arbeitnow API
-    if (externalJobs.length === 0) {
-      console.log('Adzuna credentials not configured or request failed. Falling back to Arbeitnow API...');
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 4000);
-        
-        const apiRes = await fetch('https://www.arbeitnow.com/api/job-board-api', { signal: controller.signal });
-        clearTimeout(timeoutId);
-        
-        if (apiRes.ok) {
-          const apiData = await apiRes.json();
-          if (apiData && Array.isArray(apiData.data)) {
-            externalJobs = apiData.data.map((job: any, index: number) => {
-              const tags = Array.isArray(job.tags) && job.tags.length > 0 
-                ? job.tags 
-                : ["React.js", "Node.js", "TypeScript", "Python"];
-                
-              return {
-                id: `ext-${job.slug || index}`,
-                title: job.title,
-                company: job.company_name,
-                location: job.location || "Remote",
-                type: job.remote ? "Remote" : "Full-time",
-                salary: "Competitive / Unspecified",
-                postedDate: "Recent (Arbeitnow)",
-                description: job.description ? job.description.replace(/<[^>]*>/g, ' ') : "A great software development opportunity.",
-                requirements: [
-                  "Experience working in modern technology environments.",
-                  "Familiarity with collaborative engineering guidelines and frameworks.",
-                  "Detail-oriented developer with solid algorithmic fundamentals."
-                ],
-                skills: tags
-              };
-            });
-          }
-        }
-      } catch (apiErr) {
-        console.warn('Could not load jobs from Arbeitnow API:', apiErr);
+    const results = await Promise.allSettled(fetchPromises);
+    
+    // Flatten successful arrays
+    const externalJobs: any[] = [];
+    results.forEach((result) => {
+      if (result.status === 'fulfilled' && Array.isArray(result.value)) {
+        externalJobs.push(...result.value);
       }
-    }
+    });
 
-    // 3. Merge local mock jobs with external API jobs
+    // Merge local jobs with all external API jobs
     let combinedJobs = [...jobs, ...externalJobs];
 
-    // 4. Local Filtering heuristics:
-    
-    // search query filter
+    // Filter combined jobs locally
     if (query) {
       combinedJobs = combinedJobs.filter(
         (job) =>
@@ -159,7 +271,6 @@ export async function GET(request: Request) {
       );
     }
 
-    // internship section filter
     if (internshipOnly) {
       combinedJobs = combinedJobs.filter(
         (job) =>
@@ -170,7 +281,6 @@ export async function GET(request: Request) {
       );
     }
 
-    // work model filter (Fixes remote/hybrid/on-site filters)
     if (type && type !== 'all') {
       combinedJobs = combinedJobs.filter((job) => {
         const isRemote = job.type === 'Remote' || job.location.toLowerCase().includes('remote') || job.type.toLowerCase().includes('remote');
@@ -187,7 +297,6 @@ export async function GET(request: Request) {
       });
     }
 
-    // industry filter
     if (industry && industry !== 'all') {
       combinedJobs = combinedJobs.filter((job) => {
         const title = job.title.toLowerCase();
@@ -210,7 +319,6 @@ export async function GET(request: Request) {
       });
     }
 
-    // company scale / size filter
     if (size && size !== 'all') {
       combinedJobs = combinedJobs.filter((job) => {
         const company = job.company.toLowerCase();
@@ -227,6 +335,15 @@ export async function GET(request: Request) {
         return true;
       });
     }
+
+    // Deduplicate lists by ID or Title/Company hash to keep results unique
+    const seen = new Set<string>();
+    combinedJobs = combinedJobs.filter((job) => {
+      const key = `${job.title.toLowerCase()}-${job.company.toLowerCase()}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
 
     return NextResponse.json(combinedJobs);
   } catch (error) {
