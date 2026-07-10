@@ -133,7 +133,14 @@ export default function CoverLetterTab({ selectedJob, jobsList, onIncrementLette
     const emailTo = recruiterEmail || 'hr@company.com';
     const emailSubject = encodeURIComponent(subjectText);
     const emailBody = encodeURIComponent(bodyText);
-    window.location.href = `mailto:${emailTo}?subject=${emailSubject}&body=${emailBody}`;
+    const mailtoUrl = `mailto:${emailTo}?subject=${emailSubject}&body=${emailBody}`;
+    
+    // Create an anchor element programmatically to avoid page redirects or sandbox blocks
+    const mailLink = document.createElement('a');
+    mailLink.href = mailtoUrl;
+    document.body.appendChild(mailLink);
+    mailLink.click();
+    document.body.removeChild(mailLink);
   };
 
   return (

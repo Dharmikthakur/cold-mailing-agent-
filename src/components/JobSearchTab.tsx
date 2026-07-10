@@ -64,11 +64,17 @@ export default function JobSearchTab({
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   
+  // Search Mode Toggle: 'companies' or 'jobs'
+  const [searchMode, setSearchMode] = useState<'companies' | 'jobs'>('companies');
+  const [jobsList, setJobsList] = useState<any[]>([]);
+  const [jobsLoading, setJobsLoading] = useState(false);
+
   // Advanced filters
   const [selectedSize, setSelectedSize] = useState('all');
   const [selectedRemote, setSelectedRemote] = useState('all');
   const [selectedIndustry, setSelectedIndustry] = useState('all');
   const [showSavedOnly, setShowSavedOnly] = useState(false);
+  const [onlyInternships, setOnlyInternships] = useState(false);
 
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
   const [copiedEmail, setCopiedEmail] = useState(false);
@@ -87,14 +93,37 @@ export default function JobSearchTab({
     }
   };
 
-  // Re-fetch on filter change
+  const fetchJobs = async () => {
+    try {
+      setJobsLoading(true);
+      const typeParam = selectedRemote.toLowerCase();
+      const url = `/api/jobs?query=${encodeURIComponent(searchQuery)}&type=${typeParam}&industry=${selectedIndustry}&size=${selectedSize}&internship=${onlyInternships}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      setJobsList(data);
+    } catch (err) {
+      console.error('Error fetching jobs:', err);
+    } finally {
+      setJobsLoading(false);
+    }
+  };
+
+  // Re-fetch on filter or mode change
   useEffect(() => {
-    fetchCompanies();
-  }, [selectedSize, selectedRemote, selectedIndustry]);
+    if (searchMode === 'companies') {
+      fetchCompanies();
+    } else {
+      fetchJobs();
+    }
+  }, [selectedSize, selectedRemote, selectedIndustry, searchMode, onlyInternships]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    fetchCompanies();
+    if (searchMode === 'companies') {
+      fetchCompanies();
+    } else {
+      fetchJobs();
+    }
   };
 
   const handleCopyEmail = (email: string) => {
@@ -142,8 +171,14 @@ export default function JobSearchTab({
         {/* Title and Search Form */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <h2 className="text-2xl font-bold text-slate-100 mb-1">Company Finder</h2>
-            <p className="text-slate-400 text-sm">Discover tech companies, fetch verified hiring contacts, and draft outreaches.</p>
+            <h2 className="text-2xl font-bold text-slate-100 mb-1">
+              {searchMode === 'companies' ? 'Company Finder' : 'Live Job Search'}
+            </h2>
+            <p className="text-slate-400 text-sm">
+              {searchMode === 'companies' 
+                ? 'Discover tech companies, fetch verified hiring contacts, and draft outreaches.' 
+                : 'Browse live technical openings and internships in India and globally via Adzuna.'}
+            </p>
           </div>
           
           <form onSubmit={handleSearchSubmit} className="flex gap-2 w-full md:w-auto md:max-w-md">
@@ -151,7 +186,9 @@ export default function JobSearchTab({
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
               <input
                 type="text"
-                placeholder="Search keywords (React, AI, Startup, Stripe)..."
+                placeholder={searchMode === 'companies' 
+                  ? "Search keywords (React, AI, Startup, Stripe)..." 
+                  : "Search job titles (React, Python, Backend, Android)..."}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full bg-slate-900/60 border border-slate-800 rounded-xl py-2 px-10 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-colors"
@@ -166,6 +203,32 @@ export default function JobSearchTab({
           </form>
         </div>
 
+        {/* Search Mode Toggle buttons */}
+        <div className="flex p-1.5 rounded-2xl bg-slate-950/60 border border-slate-900 self-start gap-1.5">
+          <button
+            type="button"
+            onClick={() => setSearchMode('companies')}
+            className={`px-4 py-2 rounded-xl text-xs font-extrabold transition-all duration-300 flex items-center gap-1.5 ${
+              searchMode === 'companies'
+                ? 'bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 shadow-[0_0_15px_rgba(99,102,241,0.05)]'
+                : 'text-slate-400 hover:text-slate-200 border border-transparent'
+            }`}
+          >
+            <Building2 className="h-4 w-4" /> Company Contacts
+          </button>
+          <button
+            type="button"
+            onClick={() => setSearchMode('jobs')}
+            className={`px-4 py-2 rounded-xl text-xs font-extrabold transition-all duration-300 flex items-center gap-1.5 ${
+              searchMode === 'jobs'
+                ? 'bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 shadow-[0_0_15px_rgba(99,102,241,0.05)]'
+                : 'text-slate-400 hover:text-slate-200 border border-transparent'
+            }`}
+          >
+            <Compass className="h-4 w-4" /> Live Jobs Index
+          </button>
+        </div>
+
         {/* Filters Controls Panel */}
         <div className="glass-card p-4 space-y-3.5 border-slate-800/80">
           <div className="flex flex-wrap items-center justify-between gap-4">
@@ -173,16 +236,23 @@ export default function JobSearchTab({
               <Layers className="h-4 w-4 text-indigo-400" /> Filter Criteria
             </span>
             
-            {/* Saved list toggle */}
+            {/* Saved list toggle (only applicable in companies mode) */}
             <button
-              onClick={() => setShowSavedOnly(!showSavedOnly)}
+              onClick={() => {
+                if (searchMode === 'companies') {
+                  setShowSavedOnly(!showSavedOnly);
+                }
+              }}
               className={`flex items-center gap-1.5 py-1 px-3.5 rounded-full text-xs font-bold transition ${
-                showSavedOnly 
-                  ? 'bg-amber-500/10 text-amber-400 border border-amber-500/30'
-                  : 'bg-slate-900 border border-slate-800 text-slate-400 hover:text-slate-200'
+                searchMode === 'jobs' 
+                  ? 'opacity-30 cursor-not-allowed bg-slate-900 border border-slate-850 text-slate-500'
+                  : showSavedOnly 
+                    ? 'bg-amber-500/10 text-amber-400 border border-amber-500/30'
+                    : 'bg-slate-900 border border-slate-800 text-slate-400 hover:text-slate-200'
               }`}
+              disabled={searchMode === 'jobs'}
             >
-              <Star className={`h-3.5 w-3.5 ${showSavedOnly ? 'fill-amber-400' : ''}`} />
+              <Star className={`h-3.5 w-3.5 ${showSavedOnly && searchMode === 'companies' ? 'fill-amber-400' : ''}`} />
               <span>Saved List ({savedCompanies.length})</span>
             </button>
           </div>
@@ -230,89 +300,186 @@ export default function JobSearchTab({
               </select>
             </div>
           </div>
+
+          {/* Internships Checkbox filter */}
+          <div className="flex items-center gap-2 pt-2 border-t border-slate-900/60">
+            <input
+              type="checkbox"
+              id="onlyInternships"
+              checked={onlyInternships}
+              onChange={(e) => setOnlyInternships(e.target.checked)}
+              className="rounded border-slate-800 bg-slate-950 text-indigo-600 focus:ring-indigo-500 h-4 w-4 cursor-pointer"
+            />
+            <label htmlFor="onlyInternships" className="text-xs font-bold text-slate-350 hover:text-slate-200 cursor-pointer flex items-center gap-1.5 select-none">
+              <Sparkles className="h-3.5 w-3.5 text-indigo-400" /> Only Show Internships & Co-ops
+            </label>
+          </div>
         </div>
 
         {/* Results List */}
-        {loading ? (
-          <div className="flex-1 flex items-center justify-center">
-            <span className="text-xs text-slate-500 font-semibold uppercase tracking-widest animate-pulse">Loading companies list...</span>
-          </div>
-        ) : displayedCompanies.length === 0 ? (
-          <div className="flex-1 flex flex-col items-center justify-center text-center p-8 glass-card border-dashed">
-            <p className="text-sm text-slate-400 font-medium">No companies match your query filters.</p>
-            <button 
-              onClick={() => { setSearchQuery(''); setSelectedSize('all'); setSelectedRemote('all'); setSelectedIndustry('all'); setShowSavedOnly(false); }}
-              className="text-xs text-indigo-400 hover:text-indigo-300 font-semibold mt-3"
-            >
-              Reset All Filters
-            </button>
-          </div>
+        {searchMode === 'companies' ? (
+          loading ? (
+            <div className="flex-1 flex items-center justify-center">
+              <span className="text-xs text-slate-500 font-semibold uppercase tracking-widest animate-pulse">Loading companies list...</span>
+            </div>
+          ) : displayedCompanies.length === 0 ? (
+            <div className="flex-1 flex flex-col items-center justify-center text-center p-8 glass-card border-dashed">
+              <p className="text-sm text-slate-400 font-medium">No companies match your query filters.</p>
+              <button 
+                onClick={() => { setSearchQuery(''); setSelectedSize('all'); setSelectedRemote('all'); setSelectedIndustry('all'); setShowSavedOnly(false); }}
+                className="text-xs text-indigo-400 hover:text-indigo-300 font-semibold mt-3"
+              >
+                Reset All Filters
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-fade-in">
+              {displayedCompanies.map((company) => {
+                const isSaved = isCompanySaved(company.id);
+                const isSelected = selectedCompany?.id === company.id;
+                return (
+                  <div
+                    key={company.id}
+                    onClick={() => setSelectedCompany(company)}
+                    className={`glass-card p-5 cursor-pointer flex flex-col justify-between hover:scale-[1.01] transition-transform ${
+                      isSelected 
+                        ? 'border-indigo-500/60 bg-indigo-500/[0.04] shadow-[0_4px_20px_-5px_rgba(99,102,241,0.2)]' 
+                        : 'border-slate-800'
+                    }`}
+                  >
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h3 className="font-bold text-slate-200 group-hover:text-white transition flex items-center gap-1.5">
+                            {company.name}
+                          </h3>
+                          <span className="text-xs text-slate-400 font-semibold mt-0.5 block">{company.industry}</span>
+                        </div>
+                        
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onToggleSaveCompany(company.id);
+                          }}
+                          className={`p-1.5 rounded-lg border transition ${
+                            isSaved 
+                              ? 'bg-amber-500/10 border-amber-500/30 text-amber-400' 
+                              : 'bg-slate-900 border-slate-800 text-slate-500 hover:text-slate-350'
+                          }`}
+                          title={isSaved ? "Saved to list" : "Save company"}
+                        >
+                          <Star className={`h-4 w-4 ${isSaved ? 'fill-amber-400' : ''}`} />
+                        </button>
+                      </div>
+
+                      <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed">
+                        {company.description}
+                      </p>
+
+                      <div className="flex flex-wrap gap-1.5 pt-1">
+                        {company.technologies.slice(0, 3).map((tech, index) => (
+                          <span key={index} className="text-[10px] bg-slate-900/60 border border-slate-800/80 text-slate-400 px-2 py-0.5 rounded-md font-semibold">
+                            {tech}
+                          </span>
+                        ))}
+                        {company.technologies.length > 3 && (
+                          <span className="text-[10px] text-slate-500 px-1 py-0.5 font-bold">
+                            +{company.technologies.length - 3} more
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex justify-between items-center border-t border-slate-800/60 pt-4 mt-4 text-[10px] font-medium text-slate-500">
+                      <span className="flex items-center gap-1"><MapPin className="h-3 w-3" /> {company.location}</span>
+                      <span className="flex items-center gap-1"><Building2 className="h-3 w-3" /> {company.size} · {company.remote}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {displayedCompanies.map((company) => {
-              const isSaved = isCompanySaved(company.id);
-              const isSelected = selectedCompany?.id === company.id;
-              return (
+          /* Live Job List Mode */
+          jobsLoading ? (
+            <div className="flex-1 flex items-center justify-center">
+              <span className="text-xs text-slate-500 font-semibold uppercase tracking-widest animate-pulse">Querying Live Adzuna Jobs Index...</span>
+            </div>
+          ) : jobsList.length === 0 ? (
+            <div className="flex-1 flex flex-col items-center justify-center text-center p-8 glass-card border-dashed">
+              <p className="text-sm text-slate-400 font-medium">No live job listings matched your search criteria.</p>
+              <button 
+                onClick={() => { setSearchQuery(''); setSelectedRemote('all'); fetchJobs(); }}
+                className="text-xs text-indigo-400 hover:text-indigo-300 font-semibold mt-3"
+              >
+                Reset Live Search Filters
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-fade-in">
+              {jobsList.map((job) => (
                 <div
-                  key={company.id}
-                  onClick={() => setSelectedCompany(company)}
-                  className={`glass-card p-5 cursor-pointer flex flex-col justify-between hover:scale-[1.01] ${
-                    isSelected 
-                      ? 'border-indigo-500/60 bg-indigo-500/[0.04] shadow-[0_4px_20px_-5px_rgba(99,102,241,0.2)]' 
-                      : 'border-slate-800'
-                  }`}
+                  key={job.id}
+                  className="glass-card p-5 border-slate-800 flex flex-col justify-between hover:scale-[1.01] transition-transform"
                 >
                   <div className="space-y-3">
                     <div className="flex justify-between items-start">
                       <div>
-                        <h3 className="font-bold text-slate-200 group-hover:text-white transition flex items-center gap-1.5">
-                          {company.name}
+                        <h3 className="font-bold text-slate-200 flex items-center gap-1.5 leading-snug">
+                          {job.title}
                         </h3>
-                        <span className="text-xs text-slate-400 font-semibold mt-0.5 block">{company.industry}</span>
+                        <span className="text-xs text-indigo-400 font-bold mt-0.5 block">{job.company}</span>
                       </div>
-                      
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onToggleSaveCompany(company.id);
-                        }}
-                        className={`p-1.5 rounded-lg border transition ${
-                          isSaved 
-                            ? 'bg-amber-500/10 border-amber-500/30 text-amber-400' 
-                            : 'bg-slate-900 border-slate-800 text-slate-500 hover:text-slate-350'
-                        }`}
-                        title={isSaved ? "Saved to list" : "Save company"}
-                      >
-                        <Star className={`h-4 w-4 ${isSaved ? 'fill-amber-400' : ''}`} />
-                      </button>
+                      <span className="text-[9px] bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 px-2.5 py-1 rounded-full font-extrabold uppercase tracking-wide">
+                        {job.type}
+                      </span>
                     </div>
 
-                    <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed">
-                      {company.description}
+                    <p className="text-xs text-slate-400 line-clamp-3 leading-relaxed font-mono">
+                      {job.description}
                     </p>
 
                     <div className="flex flex-wrap gap-1.5 pt-1">
-                      {company.technologies.slice(0, 3).map((tech, index) => (
-                        <span key={index} className="text-[10px] bg-slate-900/60 border border-slate-800/80 text-slate-400 px-2 py-0.5 rounded-md font-semibold">
-                          {tech}
+                      {job.skills.slice(0, 4).map((skill: string, index: number) => (
+                        <span key={index} className="text-[9px] bg-slate-900/80 border border-slate-850 text-slate-400 px-2 py-0.5 rounded font-semibold">
+                          {skill}
                         </span>
                       ))}
-                      {company.technologies.length > 3 && (
-                        <span className="text-[10px] text-slate-500 px-1 py-0.5 font-bold">
-                          +{company.technologies.length - 3} more
+                      {job.skills.length > 4 && (
+                        <span className="text-[9px] text-slate-500 font-bold">
+                          +{job.skills.length - 4} more
                         </span>
                       )}
                     </div>
                   </div>
 
-                  <div className="flex justify-between items-center border-t border-slate-850/60 pt-4 mt-4 text-[10px] font-medium text-slate-500">
-                    <span className="flex items-center gap-1"><MapPin className="h-3 w-3" /> {company.location}</span>
-                    <span className="flex items-center gap-1"><Building2 className="h-3 w-3" /> {company.size} · {company.remote}</span>
+                  <div className="border-t border-slate-850/60 pt-4 mt-4 space-y-3">
+                    <div className="flex justify-between items-center text-[10px] font-medium text-slate-500">
+                      <span className="flex items-center gap-1"><MapPin className="h-3.5 w-3.5 text-slate-500" /> {job.location}</span>
+                      <span className="text-emerald-400/90 font-bold">{job.salary}</span>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-2 pt-1.5">
+                      <button
+                        type="button"
+                        onClick={() => onNavigateToTab('tailor', job)}
+                        className="py-1.5 rounded-lg bg-indigo-500/10 hover:bg-indigo-500 text-indigo-300 hover:text-white border border-indigo-500/20 hover:border-transparent text-[10px] font-extrabold transition text-center"
+                      >
+                        Analyze Resume
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onNavigateToTab('cover-letter', job)}
+                        className="py-1.5 rounded-lg bg-purple-500/10 hover:bg-purple-500 text-purple-300 hover:text-white border border-purple-500/20 hover:border-transparent text-[10px] font-extrabold transition text-center"
+                      >
+                        Write Outreach
+                      </button>
+                    </div>
                   </div>
                 </div>
-              );
-            })}
-          </div>
+              ))}
+            </div>
+          )
         )}
       </div>
 
