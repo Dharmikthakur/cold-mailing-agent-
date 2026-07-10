@@ -103,33 +103,42 @@
   animation: pulseGlow 8s infinite ease-in-out;
 }
 
-/* Light Mode overrides */
+/* Light Mode overrides & Mountain Background on Body */
 body.light {
-  background-color: #f8fafc;
+  background-image: url('/light_mountain_bg.jpg') !important;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
   color: #0f172a;
 }
 
 body.light main {
-  background-color: #f8fafc !important;
+  background-color: transparent !important;
 }
 
 body.light aside {
-  background-color: rgba(255, 255, 255, 0.9) !important;
-  border-color: #e2e8f0 !important;
+  background-color: rgba(255, 255, 255, 0.72) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  border-color: rgba(255, 255, 255, 0.4) !important;
 }
 
 body.light .glass-card {
-  background: rgba(255, 255, 255, 0.8) !important;
-  border-color: rgba(0, 0, 0, 0.08) !important;
-  box-shadow: 0 4px 20px -5px rgba(0, 0, 0, 0.05);
+  background: rgba(255, 255, 255, 0.62) !important;
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
+  border-color: rgba(255, 255, 255, 0.5) !important;
+  box-shadow: 0 8px 32px 0 rgba(15, 23, 42, 0.04) !important;
 }
 
 body.light .glass-card:hover {
-  border-color: rgba(59, 130, 246, 0.4) !important;
-  box-shadow: 0 12px 30px -10px rgba(59, 130, 246, 0.12) !important;
+  background: rgba(255, 255, 255, 0.8) !important;
+  border-color: rgba(59, 130, 246, 0.35) !important;
+  box-shadow: 0 12px 30px -10px rgba(59, 130, 246, 0.15) !important;
 }
 
-/* Background Utility Classes Overrides */
+/* Background Utility Classes Overrides to support transparency on top of the image */
 body.light .bg-slate-900,
 body.light .bg-slate-900\/60,
 body.light .bg-slate-900\/40,
@@ -141,7 +150,9 @@ body.light .bg-slate-950\/40,
 body.light .bg-slate-950\/30,
 body.light .bg-slate-950\/20,
 body.light .bg-slate-950\/10 {
-  background-color: #ffffff !important;
+  background-color: rgba(255, 255, 255, 0.58) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
 }
 
 body.light .bg-slate-900\/20,
@@ -199,4 +210,64 @@ body.light textarea::placeholder {
 body.light .glow-orb {
   opacity: 0.15;
 }
+
+/* Cosmic Dark Mode Background on Body */
+body:not(.light) {
+  background-image: radial-gradient(circle at center, rgba(15, 23, 42, 0.2) 0%, rgba(5, 7, 15, 0.85) 100%), url('/cosmic_waves_bg.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  background-color: var(--bg-dark);
+}
+
+/* Dark Mode Glassmorphism Overrides for Tailwind classes */
+body:not(.light) .bg-slate-900 {
+  background-color: rgba(15, 23, 42, 0.45) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+}
+
+body:not(.light) .bg-slate-950 {
+  background-color: rgba(5, 7, 15, 0.5) !important;
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+}
+
+body:not(.light) .bg-slate-900\/60,
+body:not(.light) .bg-slate-900\/50,
+body:not(.light) .bg-slate-900\/40,
+body:not(.light) .bg-slate-900\/30 {
+  background-color: rgba(15, 23, 42, 0.35) !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+}
+
+body:not(.light) .bg-slate-950\/60,
+body:not(.light) .bg-slate-950\/40,
+body:not(.light) .bg-slate-950\/30,
+body:not(.light) .bg-slate-950\/20,
+body:not(.light) .bg-slate-950\/10 {
+  background-color: rgba(5, 7, 15, 0.3) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+}
+
+/* Soft border overrides to blend borders in dark mode */
+body:not(.light) .border-slate-800,
+body:not(.light) .border-slate-850,
+body:not(.light) .border-slate-800\/80,
+body:not(.light) .border-slate-850\/60,
+body:not(.light) .border-slate-900,
+body:not(.light) .border-slate-900\/60,
+body:not(.light) .border-slate-950\/40 {
+  border-color: rgba(255, 255, 255, 0.06) !important;
+}
+
+/* Cosmic glow on card hover */
+body:not(.light) .glass-card:hover {
+  border-color: rgba(236, 72, 153, 0.25) !important;
+  box-shadow: 0 12px 30px -10px rgba(168, 85, 247, 0.25) !important;
+}
+
 

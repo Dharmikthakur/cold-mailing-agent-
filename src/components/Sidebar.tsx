@@ -32,18 +32,24 @@ export default function Sidebar({ activeTab, setActiveTab, isDarkMode, onToggleT
     <aside className="w-64 border-r border-slate-800/80 bg-slate-950/40 backdrop-blur-xl p-6 flex flex-col h-screen shrink-0">
       {/* Brand Header */}
       <div className="flex items-center gap-3 mb-8 px-2">
-        <div className="h-9 w-9 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center shadow-lg shadow-blue-500/25">
+        <div className={`h-9 w-9 rounded-lg flex items-center justify-center shadow-lg transition-all duration-300 ${
+          isDarkMode 
+            ? "bg-gradient-to-br from-pink-500 via-purple-600 to-indigo-600 shadow-purple-500/30" 
+            : "bg-gradient-to-br from-blue-500 to-blue-600 shadow-blue-500/25"
+        }`}>
           <UserCheck className="h-5 w-5 text-white" />
         </div>
         <div>
           <h1 className={`font-bold text-lg leading-none bg-clip-text text-transparent bg-gradient-to-r ${
             isDarkMode 
-              ? "from-white via-slate-100 to-slate-300" 
+              ? "from-pink-400 via-purple-300 to-indigo-300 drop-shadow-[0_0_10px_rgba(236,72,153,0.3)]" 
               : "from-slate-900 via-slate-800 to-slate-700"
           }`}>
             JobPilot AI
           </h1>
-          <span className="text-[10px] text-blue-400 font-semibold tracking-wider uppercase">
+          <span className={`text-[10px] font-semibold tracking-wider uppercase ${
+            isDarkMode ? "text-purple-400" : "text-blue-400"
+          }`}>
             Career Copilot
           </span>
         </div>
@@ -60,16 +66,25 @@ export default function Sidebar({ activeTab, setActiveTab, isDarkMode, onToggleT
               onClick={() => setActiveTab(item.id)}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-250 group ${
                 isActive 
-                  ? 'bg-blue-500/10 text-blue-400 border border-blue-500/25 shadow-inner' 
+                  ? (isDarkMode 
+                      ? 'bg-purple-500/15 text-purple-300 border border-purple-500/30 shadow-[0_0_15px_rgba(168,85,247,0.05)]' 
+                      : 'bg-blue-500/10 text-blue-400 border border-blue-500/25 shadow-inner'
+                    ) 
                   : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/40 border border-transparent'
               }`}
             >
               <Icon className={`h-4 w-4 transition-transform duration-250 group-hover:scale-110 ${
-                isActive ? 'text-blue-400' : 'text-slate-400 group-hover:text-slate-300'
+                isActive 
+                  ? (isDarkMode ? 'text-purple-300' : 'text-blue-400') 
+                  : 'text-slate-400 group-hover:text-slate-300'
               }`} />
               <span>{item.label}</span>
               {isActive && (
-                <span className="ml-auto h-1.5 w-1.5 rounded-full bg-blue-400 shadow-[0_0_8px_rgba(59,130,246,0.8)]" />
+                <span className={`ml-auto h-1.5 w-1.5 rounded-full ${
+                  isDarkMode 
+                    ? 'bg-purple-400 shadow-[0_0_8px_rgba(168,85,247,0.8)]' 
+                    : 'bg-blue-400 shadow-[0_0_8px_rgba(59,130,246,0.8)]'
+                }`} />
               )}
             </button>
           );

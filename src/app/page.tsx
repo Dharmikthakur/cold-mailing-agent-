@@ -294,12 +294,14 @@ export default function Home() {
   return (
     <div 
       onMouseMove={handleMouseMove}
-      className={`flex h-screen w-screen overflow-hidden relative transition-colors duration-350 ${
-        isDarkMode ? 'bg-[#070b14] text-slate-100' : 'bg-[#f8fafc] text-slate-900'
+      className={`flex h-screen w-screen overflow-hidden relative transition-colors duration-350 bg-transparent ${
+        isDarkMode ? 'text-slate-100' : 'text-slate-900'
       }`}
     >
       {/* Background dynamic interactive shader */}
-      <div className="absolute inset-0 w-full h-full z-0 pointer-events-none opacity-80 transition-opacity duration-300">
+      <div className={`absolute inset-0 w-full h-full z-0 pointer-events-none transition-opacity duration-300 ${
+        isDarkMode ? 'opacity-40 mix-blend-screen' : 'opacity-25'
+      }`}>
         <Warp {...warpParams} colors={defaultColors} style={{ width: '100%', height: '100%' }} />
       </div>
 
