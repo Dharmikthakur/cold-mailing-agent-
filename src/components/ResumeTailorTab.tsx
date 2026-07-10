@@ -605,35 +605,113 @@ UI/UX Design, Figma, Prototyping, Wireframing, User Research, CSS, HTML`);
 
             {/* Resume Tailor Suggestion Section if tailor result loaded */}
             {tailorResult && (
-              <div className="glass-card p-5 space-y-4 border-indigo-500/20">
-                <div className="flex justify-between items-center">
+              <div className="glass-card p-5 space-y-5 border-indigo-500/20">
+                <div className="flex justify-between items-center border-b border-slate-900 pb-3">
                   <span className="text-[10px] font-bold text-indigo-400 uppercase tracking-widest flex items-center gap-1">
                     <Sparkles className="h-3.5 w-3.5 animate-pulse" /> Alignment Score & Bullet Recommendations
                   </span>
-                  
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-slate-400">Match score:</span>
-                    <span className={`text-sm font-extrabold ${scoreValue >= 80 ? 'text-emerald-400' : 'text-amber-400'}`}>
-                      {scoreValue}%
-                    </span>
+                </div>
+
+                {/* Score Visual Dial Block */}
+                <div className="flex flex-col md:flex-row items-center gap-6 p-5 rounded-2xl bg-slate-950/40 border border-slate-900/60">
+                  {/* Circular SVG Dial */}
+                  <div className="relative flex items-center justify-center shrink-0 w-24 h-24">
+                    <svg className="w-full h-full transform -rotate-90">
+                      <circle
+                        cx="48"
+                        cy="48"
+                        r="38"
+                        className="stroke-slate-800"
+                        strokeWidth="6"
+                        fill="transparent"
+                      />
+                      <circle
+                        cx="48"
+                        cy="48"
+                        r="38"
+                        className={`transition-all duration-1000 ease-out ${getScoreColor(scoreValue)}`}
+                        strokeWidth="6"
+                        fill="transparent"
+                        strokeDasharray={2 * Math.PI * 38}
+                        strokeDashoffset={2 * Math.PI * 38 - (scoreValue / 100) * (2 * Math.PI * 38)}
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                    <div className="absolute flex flex-col items-center justify-center">
+                      <span className="text-xl font-black text-slate-100">{scoreValue}%</span>
+                      <span className="text-[8px] font-bold text-slate-500 uppercase tracking-wider">ATS Match</span>
+                    </div>
+                  </div>
+
+                  {/* Description and Action */}
+                  <div className="flex-1 space-y-2 text-center md:text-left">
+                    <h3 className="text-sm font-bold text-slate-200">
+                      {optimized 
+                        ? "Excellent! ATS Match Optimized" 
+                        : `Resume compared to ${tailorResult.jobTitle}`
+                      }
+                    </h3>
+                    <p className="text-xs text-slate-400 leading-relaxed max-w-md">
+                      {optimized 
+                        ? "Awesome job! Bullet points have been tailored using job keywords. This will optimize ATS performance."
+                        : `Aligning missing keywords will increase your ATS compatibility score from ${tailorResult.currentScore}% to ${tailorResult.potentialScore}%.`
+                      }
+                    </p>
+                    {!optimized && (
+                      <button
+                        onClick={handleApplyOptimization}
+                        className="mt-2 py-1.5 px-4 rounded-xl bg-emerald-500/10 border border-emerald-500/25 hover:bg-emerald-500/20 text-emerald-450 hover:text-emerald-350 font-bold text-xs transition"
+                      >
+                        Optimize Bullets
+                      </button>
+                    )}
                   </div>
                 </div>
 
-                <div className="p-4 rounded-xl bg-slate-900/50 border border-slate-900 flex justify-between items-center gap-4 flex-wrap">
-                  <p className="text-xs text-slate-400 max-w-md">
-                    {optimized 
-                      ? "Awesome job! Bullet points have been tailored using job keywords. This will optimize ATS performance."
-                      : `Resume has been compared to ${tailorResult.jobTitle}. Aligning keywords will raise the match score from ${tailorResult.currentScore}% to ${tailorResult.potentialScore}%.`
-                    }
-                  </p>
-                  {!optimized && (
-                    <button
-                      onClick={handleApplyOptimization}
-                      className="py-1.5 px-3.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 hover:bg-emerald-500/20 text-emerald-400 font-bold text-xs transition"
-                    >
-                      Optimize Bullets
-                    </button>
-                  )}
+                {/* Keyword Alignment Grid */}
+                <div className="space-y-2.5">
+                  <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider block">Keyword Alignment Analysis</span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {/* Matching Keywords */}
+                    <div className="p-4 rounded-xl bg-emerald-500/[0.01] border border-emerald-500/10 space-y-2">
+                      <span className="text-[9px] uppercase font-bold text-emerald-400 tracking-widest block flex items-center gap-1.5">
+                        <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" /> Matched Keywords ({tailorResult.matchingSkills?.length || 0})
+                      </span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {tailorResult.matchingSkills && tailorResult.matchingSkills.length > 0 ? (
+                          tailorResult.matchingSkills.map((skill: string, i: number) => (
+                            <span key={i} className="px-2 py-1 rounded bg-emerald-500/5 border border-emerald-500/10 text-[10px] font-semibold text-emerald-300">
+                              {skill}
+                            </span>
+                          ))
+                        ) : (
+                          <span className="text-[10px] text-slate-500 italic">No keywords matched yet</span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Missing Keywords */}
+                    <div className="p-4 rounded-xl bg-rose-500/[0.01] border border-rose-500/10 space-y-2">
+                      <span className="text-[9px] uppercase font-bold text-rose-455 tracking-widest block flex items-center gap-1.5">
+                        <AlertCircle className="h-3.5 w-3.5 text-rose-550" /> Missing Keywords ({tailorResult.missingSkills?.length || 0})
+                      </span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {tailorResult.missingSkills && tailorResult.missingSkills.length > 0 ? (
+                          tailorResult.missingSkills.map((skill: string, i: number) => (
+                            <span key={i} className={`px-2 py-1 rounded text-[10px] font-semibold border transition-all duration-300 ${
+                              optimized 
+                                ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' 
+                                : 'bg-rose-500/5 border border-rose-500/10 text-rose-400'
+                            }`}>
+                              {skill} {optimized && "✓"}
+                            </span>
+                          ))
+                        ) : (
+                          <span className="text-[10px] text-slate-500 italic">None - 100% matched!</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                 <div className="space-y-4 pt-2">
