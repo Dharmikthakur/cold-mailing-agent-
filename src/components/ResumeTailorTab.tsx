@@ -146,8 +146,8 @@ UI/UX Design, Figma, Prototyping, Wireframing, User Research, CSS, HTML`);
     }
   };
 
-  // PDF file upload handler simulation
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // PDF file upload handler
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -157,47 +157,54 @@ UI/UX Design, Figma, Prototyping, Wireframing, User Research, CSS, HTML`);
     }
 
     setFileName(file.name);
-    // Format size
     const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
     setFileSize(`${sizeMB} MB`);
 
-    // Simulate reading text from PDF
-    setAnalyzingStep('Reading PDF structure...');
+    setAnalyzingStep('Parsing PDF content...');
     setLoading(true);
-    setUploadProgress(10);
+    setUploadProgress(20);
 
-    const interval = setInterval(() => {
-      setUploadProgress(prev => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          // Set simulated text content based on file name
-          const nameLower = file.name.toLowerCase();
-          if (nameLower.includes('design') || nameLower.includes('ui')) {
-            setResumeText("Simulated Designer PDF:\nArun Mehta, Designer, Figma, UI/UX, Wireframing");
-          } else if (nameLower.includes('ai') || nameLower.includes('ml') || nameLower.includes('model')) {
-            setResumeText("Simulated AI PDF:\nSanya Sharma, Python, PyTorch, LLMs, Deep Learning");
-          } else {
-            setResumeText("Simulated Developer PDF:\nDharmik Thakur, GGITS, React, Node, Express, MongoDB");
-          }
-          setAnalyzingStep('Scanning pages...');
-          triggerAnalysisAPI(file.name);
-          return 100;
-        }
-        return prev + 30;
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      setUploadProgress(40);
+      const res = await fetch('/api/parse-pdf', {
+        method: 'POST',
+        body: formData,
       });
-    }, 300);
+
+      if (!res.ok) throw new Error('PDF parsing failed');
+      const data = await res.json();
+      
+      setUploadProgress(70);
+      const text = data.text || '';
+      setResumeText(text);
+
+      setAnalyzingStep('Extracting key sections...');
+      setUploadProgress(85);
+
+      await triggerAnalysisAPI(file.name, text);
+      setUploadProgress(100);
+    } catch (err) {
+      console.error(err);
+      alert('Failed to parse PDF text. You can still paste your resume text in the field below to analyze.');
+      setAnalyzingStep(null);
+      setLoading(false);
+      setUploadProgress(0);
+    }
   };
 
-  const triggerAnalysisAPI = async (nameOfFile: string) => {
+  const triggerAnalysisAPI = async (nameOfFile: string, textToAnalyze?: string) => {
     try {
       setAnalyzingStep('Extracting key sections...');
+      const targetText = textToAnalyze || resumeText || `Developer Resume Name: ${nameOfFile}`;
       
-      // Simulate endpoint call
       const res = await fetch('/api/ai/resume-analysis', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          resumeText: resumeText || `Developer Resume Name: ${nameOfFile}`, 
+          resumeText: targetText, 
           fileName: nameOfFile 
         })
       });

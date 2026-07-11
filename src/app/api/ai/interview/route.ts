@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { parseLLMResponse, cleanMarkdown } from '@/lib/utils';
 
 const defaultQuestions = {
   frontend: [
@@ -59,7 +60,78 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { mode = 'generate', jobId, jobTitle, questionId, userAnswer, questionText } = body;
 
+    const groqKey = process.env.GROQ_API_KEY || '';
+    const hasGroq = groqKey && !groqKey.startsWith('gsk_mock_key');
+
     if (mode === 'generate') {
+      if (hasGroq) {
+        try {
+          console.log(`Generating mock interview questions via Groq API for role: ${jobTitle}...`);
+          const systemPrompt = `You are a technical interviewer. 
+Generate 3 realistic interview questions for a candidate applying to the given job title.
+Mix technical questions with at least one behavioral question.
+You MUST respond with a JSON object in this exact format:
+{
+  "jobTitle": "Target job title",
+  "questions": [
+    {
+      "id": "q-1",
+      "question": "Question text here...",
+      "category": "Technical" // or "Behavioral"
+    },
+    {
+      "id": "q-2",
+      "question": "Question text here...",
+      "category": "Technical"
+    },
+    {
+      "id": "q-3",
+      "question": "Question text here...",
+      "category": "Behavioral"
+    }
+  ]
+}`;
+
+          const userPrompt = `Job Title: ${jobTitle || 'Software Engineer'}`;
+
+          const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${groqKey}`
+            },
+            body: JSON.stringify({
+              model: 'llama-3.1-8b-instant',
+              messages: [
+                { role: 'system', content: systemPrompt },
+                { role: 'user', content: userPrompt }
+              ],
+              response_format: { type: "json_object" },
+              temperature: 0.7
+            })
+          });
+
+          if (groqRes.ok) {
+            const groqData = await groqRes.json();
+            const contentText = groqData.choices?.[0]?.message?.content;
+            if (contentText) {
+              const parsed = parseLLMResponse(contentText);
+              if (parsed && Array.isArray(parsed.questions)) {
+                return NextResponse.json({
+                  jobTitle: parsed.jobTitle || jobTitle || 'Software Engineer',
+                  questions: parsed.questions
+                });
+              }
+            }
+          } else {
+            console.warn('Groq API returned error status for questions generation:', groqRes.statusText);
+          }
+        } catch (err) {
+          console.error('Groq questions generation failed, falling back to templates:', err);
+        }
+      }
+
+      // Default mock questions generator fallback
       let role = 'general';
       const title = (jobTitle || '').toLowerCase();
       
@@ -86,6 +158,63 @@ export async function POST(request: Request) {
         });
       }
 
+      if (hasGroq) {
+        try {
+          console.log('Evaluating interview answer via Groq API (llama-3.1-8b-instant)...');
+          const systemPrompt = `You are a technical interviewer evaluating a candidate's response.
+Compare the userAnswer to the questionText. Grade their performance and provide the correct/model answer.
+You MUST respond with a JSON object in this exact format:
+{
+  "grade": "A", // one of "A", "B", "C", "D", "F"
+  "feedback": "Detailed constructive feedback pointing out strengths, what technical details they missed, and areas of improvement.",
+  "modelAnswer": "A comprehensive, correct answer to the question that explains key concepts, definitions, and code patterns."
+}`;
+
+          const userPrompt = `
+Question Asked: ${questionText}
+Candidate's Answer:
+${userAnswer}
+`;
+
+          const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${groqKey}`
+            },
+            body: JSON.stringify({
+              model: 'llama-3.1-8b-instant',
+              messages: [
+                { role: 'system', content: systemPrompt },
+                { role: 'user', content: userPrompt }
+              ],
+              response_format: { type: "json_object" },
+              temperature: 0.2
+            })
+          });
+
+          if (groqRes.ok) {
+            const groqData = await groqRes.json();
+            const contentText = groqData.choices?.[0]?.message?.content;
+            if (contentText) {
+              const parsed = parseLLMResponse(contentText);
+              if (parsed) {
+                return NextResponse.json({
+                  grade: parsed.grade || 'C',
+                  feedback: cleanMarkdown(parsed.feedback || 'Answer evaluated.'),
+                  modelAnswer: cleanMarkdown(parsed.modelAnswer || 'Comprehensive model response.')
+                });
+              }
+            }
+          } else {
+            console.warn('Groq API returned error status for evaluation:', groqRes.statusText);
+          }
+        } catch (err) {
+          console.error('Groq answer evaluation failed, falling back to local analysis:', err);
+        }
+      }
+
+      // Local keyword grading fallback
       const answerLower = userAnswer.toLowerCase();
       let grade = "C";
       let feedback = "";

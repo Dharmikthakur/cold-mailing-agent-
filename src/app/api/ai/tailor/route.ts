@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import jobs from '@/data/jobs.json';
+import { parseLLMResponse } from '@/lib/utils';
 
 export async function POST(request: Request) {
   try {
@@ -39,6 +40,78 @@ export async function POST(request: Request) {
       requiredSkills = ['React.js', 'JavaScript', 'Node.js', 'Git'];
     }
 
+    // 1. Try Groq AI Llama 3.1 8B if API key is present
+    const groqKey = process.env.GROQ_API_KEY || '';
+    const hasGroq = groqKey && !groqKey.startsWith('gsk_mock_key');
+
+    if (hasGroq) {
+      try {
+        console.log('Comparing resume matching via Groq API (llama-3.1-8b-instant)...');
+        const systemPrompt = `You are an ATS (Applicant Tracking System) optimizer and resume writer. 
+Compare the user's resume text with the job title and description provided.
+You MUST respond with a JSON object in this exact format:
+{
+  "jobTitle": "Cleaned target job title",
+  "currentScore": 75, // integer matching score out of 100 based on keyword overlap
+  "potentialScore": 90, // integer potential score out of 100 if missing keywords are added
+  "matchingSkills": ["Skill1", "Skill2"], // array of matching tech stack keywords found in both
+  "missingSkills": ["Skill3", "Skill4"], // array of tech keywords in the job description missing from the resume
+  "bulletSuggestions": [
+    {
+      "original": "A generic bullet point from the resume that could be better tailored",
+      "tailored": "A high-impact tailored bullet point that integrates missing skills in a quantified way",
+      "reason": "Short reason explaining why this change helps pass the ATS check"
+    }
+  ]
+}`;
+
+        const userPrompt = `
+Job Title: ${targetTitle || 'Software Engineer'}
+Job Description: ${targetDescription || 'Full stack development role.'}
+User Resume Text:
+${resume}
+`;
+
+        const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${groqKey}`
+          },
+          body: JSON.stringify({
+            model: 'llama-3.1-8b-instant',
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: userPrompt }
+            ],
+            response_format: { type: "json_object" },
+            temperature: 0.2
+          })
+        });
+
+        if (groqRes.ok) {
+          const groqData = await groqRes.json();
+          const contentText = groqData.choices?.[0]?.message?.content;
+          if (contentText) {
+            const parsed = parseLLMResponse(contentText);
+            return NextResponse.json({
+              jobTitle: parsed.jobTitle || targetTitle,
+              currentScore: Number(parsed.currentScore) || 50,
+              potentialScore: Number(parsed.potentialScore) || 75,
+              matchingSkills: parsed.matchingSkills || [],
+              missingSkills: parsed.missingSkills || [],
+              bulletSuggestions: parsed.bulletSuggestions || []
+            });
+          }
+        } else {
+          console.warn('Groq API returned an error response:', groqRes.statusText);
+        }
+      } catch (err) {
+        console.error('Groq resume tailor failed, falling back to local analysis:', err);
+      }
+    }
+
+    // 2. Fallback heuristic matching if Groq is not configured
     const resumeLower = resume.toLowerCase();
     
     // Analyze matching skills

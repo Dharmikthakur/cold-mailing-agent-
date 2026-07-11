@@ -1,10 +1,88 @@
 import { NextResponse } from 'next/server';
+import { parseLLMResponse } from '@/lib/utils';
 
 export async function POST(request: Request) {
   try {
     const { resumeText, fileName, fileType } = await request.json();
 
-    // Default simulation if resume is empty or a sample
+    // 1. Try Groq AI Llama 3.1 8B if API key is present
+    const groqKey = process.env.GROQ_API_KEY || '';
+    const hasGroq = groqKey && !groqKey.startsWith('gsk_mock_key');
+
+    if (hasGroq && resumeText) {
+      try {
+        console.log('Parsing uploaded resume via Groq API (llama-3.1-8b-instant)...');
+        const systemPrompt = `You are a professional resume parser. 
+Extract structured resume sections and assess strengths and gaps.
+You MUST respond with a JSON object in this exact format:
+{
+  "skills": ["React.js", "Node.js"],
+  "education": {
+    "degree": "Degree name",
+    "school": "University/College name",
+    "year": "e.g. 2023 - 2027",
+    "details": "e.g. GPA, courses"
+  },
+  "experience": [
+    {
+      "role": "Job Role / Internship Title",
+      "company": "Company/Org Name",
+      "duration": "Duration range (e.g. May 2026 - Present)",
+      "bullets": ["Achievement line 1", "Achievement line 2"]
+    }
+  ],
+  "projects": [
+    {
+      "title": "Project Title",
+      "description": "Project details and tech stack used"
+    }
+  ],
+  "strengths": ["Strength 1", "Strength 2"],
+  "gaps": ["Gap 1 / Skill missing 1", "Gap 2 / Skill missing 2"]
+}`;
+
+        const userPrompt = `
+User Resume Text:
+${resumeText}
+`;
+
+        const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${groqKey}`
+          },
+          body: JSON.stringify({
+            model: 'llama-3.1-8b-instant',
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: userPrompt }
+            ],
+            response_format: { type: "json_object" },
+            temperature: 0.1
+          })
+        });
+
+        if (groqRes.ok) {
+          const groqData = await groqRes.json();
+          const contentText = groqData.choices?.[0]?.message?.content;
+          if (contentText) {
+            const parsed = parseLLMResponse(contentText);
+            return NextResponse.json({
+              fileName: fileName || "uploaded_resume.pdf",
+              fileType: fileType || "application/pdf",
+              parsedData: parsed
+            });
+          }
+        } else {
+          console.warn('Groq API returned an error response:', groqRes.statusText);
+        }
+      } catch (err) {
+        console.error('Groq resume parse failed, falling back to local analysis:', err);
+      }
+    }
+
+    // 2. Fallback switch cases if Groq is not configured
     const isMockDharmik = !resumeText || 
       resumeText.toLowerCase().includes('dharmik') || 
       resumeText.toLowerCase().includes('ggits');

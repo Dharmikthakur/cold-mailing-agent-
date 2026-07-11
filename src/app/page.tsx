@@ -213,66 +213,6 @@ export default function Home() {
     setActiveTab(tab);
   };
 
-  const renderActiveTab = () => {
-    switch (activeTab) {
-      case 'dashboard':
-        return (
-          <DashboardTab 
-            stats={stats} 
-            applications={applications} 
-            onNavigate={(tab) => setActiveTab(tab)} 
-          />
-        );
-      case 'search':
-        return (
-          <JobSearchTab 
-            applications={applications} 
-            onAddApplication={handleAddApplication} 
-            onNavigateToTab={handleNavigateToTab} 
-            savedCompanies={savedCompanies}
-            onToggleSaveCompany={handleToggleSaveCompany}
-          />
-        );
-      case 'tailor':
-        return (
-          <ResumeTailorTab 
-            selectedJob={selectedJob} 
-            jobsList={jobsList} 
-            onIncrementTailored={() => setStats(prev => ({ ...prev, tailored: prev.tailored + 1 }))}
-          />
-        );
-      case 'cover-letter':
-        return (
-          <CoverLetterTab 
-            selectedJob={selectedJob} 
-            jobsList={jobsList} 
-            onIncrementLetters={() => setStats(prev => ({ ...prev, letters: prev.letters + 1 }))}
-          />
-        );
-      case 'tracker':
-        return (
-          <TrackerTab 
-            applications={applications} 
-            onUpdateStatus={handleUpdateStatus} 
-            onUpdateNotes={handleUpdateNotes}
-            onUpdateFollowUpDate={handleUpdateFollowUpDate}
-            onAddManualApplication={handleAddManualApplication}
-            onRemoveApplication={handleRemoveApplication}
-            onNavigate={(tab) => setActiveTab(tab)}
-          />
-        );
-      case 'interview':
-        return (
-          <InterviewTab 
-            selectedJob={selectedJob} 
-            jobsList={jobsList} 
-          />
-        );
-      default:
-        return <div>Tab not found.</div>;
-    }
-  };
-
   // Choose colors based on active mode
   const defaultColors = isDarkMode
     ? ["#030712", "#0f172a", "#1e293b", "#0f172a"] // professional dark slate & steel
@@ -315,7 +255,53 @@ export default function Home() {
 
       {/* Workspace Panel Container */}
       <main className="flex-1 p-8 overflow-y-auto h-screen relative z-10">
-        {renderActiveTab()}
+        <div className={activeTab === 'dashboard' ? '' : 'hidden'}>
+          <DashboardTab 
+            stats={stats} 
+            applications={applications} 
+            onNavigate={(tab) => setActiveTab(tab)} 
+          />
+        </div>
+        <div className={activeTab === 'search' ? '' : 'hidden'}>
+          <JobSearchTab 
+            applications={applications} 
+            onAddApplication={handleAddApplication} 
+            onNavigateToTab={handleNavigateToTab} 
+            savedCompanies={savedCompanies}
+            onToggleSaveCompany={handleToggleSaveCompany}
+          />
+        </div>
+        <div className={activeTab === 'tailor' ? '' : 'hidden'}>
+          <ResumeTailorTab 
+            selectedJob={selectedJob} 
+            jobsList={jobsList} 
+            onIncrementTailored={() => setStats(prev => ({ ...prev, tailored: prev.tailored + 1 }))}
+          />
+        </div>
+        <div className={activeTab === 'cover-letter' ? '' : 'hidden'}>
+          <CoverLetterTab 
+            selectedJob={selectedJob} 
+            jobsList={jobsList} 
+            onIncrementLetters={() => setStats(prev => ({ ...prev, letters: prev.letters + 1 }))}
+          />
+        </div>
+        <div className={activeTab === 'tracker' ? '' : 'hidden'}>
+          <TrackerTab 
+            applications={applications} 
+            onUpdateStatus={handleUpdateStatus} 
+            onUpdateNotes={handleUpdateNotes}
+            onUpdateFollowUpDate={handleUpdateFollowUpDate}
+            onAddManualApplication={handleAddManualApplication}
+            onRemoveApplication={handleRemoveApplication}
+            onNavigate={(tab) => setActiveTab(tab)}
+          />
+        </div>
+        <div className={activeTab === 'interview' ? '' : 'hidden'}>
+          <InterviewTab 
+            selectedJob={selectedJob} 
+            jobsList={jobsList} 
+          />
+        </div>
       </main>
     </div>
   );

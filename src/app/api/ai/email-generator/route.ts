@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { parseLLMResponse, cleanMarkdown } from '@/lib/utils';
 
 export async function POST(request: Request) {
   try {
@@ -6,7 +7,7 @@ export async function POST(request: Request) {
       companyName, 
       jobRole, 
       technologies = [], 
-      resumeSnippet = '', 
+      resumeSnippet: candidateSummary = '', 
       portfolioLink = '', 
       githubLink = '', 
       emailType = 'outreach', // 'outreach' | 'followup'
@@ -25,6 +26,80 @@ export async function POST(request: Request) {
     const githubSnippet = githubLink ? `GitHub: ${githubLink}` : '';
     const linksBlock = [portfolioSnippet, githubSnippet].filter(Boolean).join('\n');
 
+    // 1. Try Groq AI Llama 3.1 8B if API key is present
+    const groqKey = process.env.GROQ_API_KEY || '';
+    const hasGroq = groqKey && !groqKey.startsWith('gsk_mock_key');
+
+    if (hasGroq) {
+      try {
+        console.log('Generating cold outreach via Groq API (llama-3.1-8b-instant)...');
+        const systemPrompt = `You are an expert career coach and cold outreach writer. 
+Generate a professional, highly personalized cold outreach message based on the user's inputs.
+You MUST respond with a JSON object in this exact format:
+{
+  "subject": "Email subject line (empty for linkedin-note)",
+  "emailBody": "The generated email body or message text"
+}
+Keep links like portfolio and github integrated naturally. 
+If outreachChannel is 'linkedin-note', keep the emailBody strictly under 300 characters (including spaces, links, and signature). Do not exceed 300 characters. No subject line.`;
+
+        const userPrompt = `
+Company Name: ${companyName}
+Target Role: ${jobRole}
+Technologies to focus on: ${technologies.join(', ')}
+Candidate Summary: ${candidateSummary}
+Portfolio Link: ${portfolioLink}
+GitHub Link: ${githubLink}
+Email Type: ${emailType} (either outreach or followup)
+Outreach Channel: ${outreachChannel} (can be email, linkedin-note, or linkedin-message)
+Tone: ${tone} (can be tech-focused, bold, formal, or conversational)
+Recruiter Name: ${recipient}
+`;
+
+        const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${groqKey}`
+          },
+          body: JSON.stringify({
+            model: 'llama-3.1-8b-instant',
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: userPrompt }
+            ],
+            response_format: { type: "json_object" },
+            temperature: 0.7
+          })
+        });
+
+        if (groqRes.ok) {
+          const groqData = await groqRes.json();
+          const contentText = groqData.choices?.[0]?.message?.content;
+          if (contentText) {
+            const parsed = parseLLMResponse(contentText);
+            if (parsed && (parsed.emailBody || parsed.body)) {
+              const body = parsed.emailBody || parsed.body;
+              return NextResponse.json({
+                subject: cleanMarkdown(parsed.subject || ''),
+                emailBody: cleanMarkdown(body || ''),
+                emailType,
+                companyName,
+                jobRole,
+                outreachChannel,
+                tone
+              });
+            }
+          }
+        } else {
+          console.warn('Groq API returned an error response:', groqRes.statusText);
+        }
+      } catch (err) {
+        console.error('Groq email generation failed, falling back to templates:', err);
+      }
+    }
+
+    // 2. Fallback switch cases if Groq is not configured
     if (emailType === 'followup') {
       // Follow-up generation
       if (outreachChannel === 'linkedin-note') {
@@ -99,70 +174,66 @@ Sincerely,
         } else if (tone === 'formal') {
           emailBody = `Dear ${recipient},
 
-I hope this message finds you well.
+I am writing to express my strong interest in joining ${companyName} as a ${jobRole} intern. As a Computer Science student at Gyan Ganga Institute of Technology and Sciences, I have developed solid foundational skills in modern software engineering, particularly using ${techText}.
 
-My name is [Your Name], and I am currently pursuing my Computer Science degree at GGITS. I am writing to express my strong interest in the ${jobRole} internship opportunity at ${companyName}. I have practical experience developing full-stack applications with React.js, Node.js, and REST APIs.
+Through my internship at SkillHigh, I have gained hands-on experience building functional frontends and modular REST controllers. I am eager to apply my capabilities to your current engineering objectives.
 
-You can view details of my projects and experience here:
-${linksBlock || 'https://github.com/dharmikthakur'}
+My portfolio and repositories are available below for your review:
+${linksBlock || '[Insert portfolio/github links here]'}
 
-I would be highly grateful for the opportunity to connect and briefly discuss how my background aligns with your engineering goals. Thank you for your time.
+Thank you for your consideration. I look forward to the possibility of discussing how I can contribute to the success of ${companyName}.
 
-Respectfully,
+Sincerely,
 [Your Name]`;
         } else if (tone === 'conversational') {
           emailBody = `Hi ${recipient},
 
-Hope you're having a great week!
+I hope you're having a great week!
 
-I've been following ${companyName}'s updates and really admire what your team is building, particularly using ${techText}. I'm a CS student at GGITS seeking a ${jobRole} internship, and I'd love to connect to hear more about your work and the engineering culture.
+I've been following ${companyName}'s updates for a while now and am always impressed by your engineering team's approach, especially the work around ${techText}. 
 
-Here is a quick look at my projects:
+I'm a CS student at GGITS and a full stack developer. I'm looking for a ${jobRole} internship opportunity and would love to connect. I promise to keep it brief—I'd love to learn about what kind of projects interns get to work on at ${companyName}.
+
+You can see some of what I've built here:
 ${linksBlock || 'https://github.com/dharmikthakur'}
 
-Would you be open to a casual chat sometime soon? No pressure at all.
+Are you open to connecting?
 
-Warmly,
+Best,
 [Your Name]`;
         } else {
           // tech-focused
+          subject = `Technical Internship Inquiry: ${jobRole} - ${companyName}`;
           emailBody = `Hi ${recipient},
 
 I hope you're doing well.
 
-I noticed your engineering team at ${companyName} is building innovative tools leveraging ${techText}. As a CS student at GGITS and full-stack developer with experience in React, Node.js, and MongoDB APIs, I would love the opportunity to contribute to this architecture as a ${jobRole} intern.
+I came across ${companyName}'s engineering blog recently and noticed your team is working extensively with ${techText}. As a full stack developer who lives and breathes this tech stack, I'm reaching out to express interest in a ${jobRole} internship.
 
-You can review my code quality and developer portfolio here:
+During my recent internship at SkillHigh, I worked on integrating React.js dashboard widgets and designing database REST controllers. I'm confident my familiarity with ${techText} would let me start contributing to your team from day one.
+
+You can inspect my code quality and past projects on GitHub:
 ${linksBlock || 'https://github.com/dharmikthakur'}
 
-Would you be open to a brief chat next week to discuss opportunities on the engineering team?
+Would you be open to a quick 10-minute chat next week to discuss how I could assist your engineering team?
 
 Best regards,
 [Your Name]`;
         }
       } else {
-        // email channel
-        let intro = '';
-        let candidateSummary = resumeSnippet && resumeSnippet.trim().length > 10 
-          ? resumeSnippet 
-          : `I am currently pursuing my degree in Computer Science. I have hands-on experience building full-stack web applications, designing RESTful APIs, and implementing responsive layouts using React and Node.js.`;
-
+        // Email outreach
         if (tone === 'bold') {
-          subject = `${jobRole} Intern Candidate - Ready to contribute at ${companyName}`;
-          intro = `I am a full-stack engineer who builds scalable, high-performance web applications. I noticed your team at ${companyName} is working on exciting projects leveraging ${techText}, and I want to bring my React and Node skills to your engineering team as a ${jobRole} intern.`;
-          
+          subject = `Ready to contribute: ${jobRole} Internship at ${companyName}`;
           emailBody = `Dear ${recipient},
 
-${intro}
+I am writing to you directly because I want to join the engineering team at ${companyName} as a ${jobRole} intern. I specialize in building web applications with ${techText} and want to bring my coding skills to your team.
 
-${candidateSummary}
+At my recent internship at SkillHigh, I didn't just write HTML; I designed interactive React widgets and connected backend REST API collections. I learn fast, work hard, and know how to collaborate within git-based teams.
 
-I pride myself on writing clean, maintainable code and learning new frameworks quickly. I would love the opportunity to bring my energy and skills to the engineering team at ${companyName}.
+My portfolio and repository code are available at:
+${linksBlock || 'https://github.com/dharmikthakur'}
 
-I have detailed my projects on my portfolio and GitHub:
-${linksBlock || '[Insert portfolio/github links here]'}
-
-Would you be open to a brief, 10-minute call sometime next week to discuss how my background aligns with your engineering goals? I've attached my resume for your review.
+I would love to jump on a quick 5-minute call next week to discuss how my hands-on background can benefit your current development sprints. Are you free next Tuesday?
 
 Sincerely,
 
@@ -170,30 +241,26 @@ Sincerely,
 [Your Email Address]
 [Your Phone Number]`;
         } else if (tone === 'formal') {
-          subject = `Application for ${jobRole} Internship - [Your Name]`;
-          intro = `I am writing to express my enthusiastic interest in the ${jobRole} internship opportunity at ${companyName}. I have been following ${companyName}'s work with interest, particularly your recent developments in ${techText}, and believe my background makes me a strong fit for your team.`;
-          
+          subject = `Application: ${jobRole} Internship - [Your Name]`;
           emailBody = `Dear ${recipient},
 
-${intro}
+I am writing to express my enthusiastic interest in the ${jobRole} internship position at ${companyName}. As a Computer Science student at Gyan Ganga Institute of Technology and Sciences (GGITS), I have developed a strong technical foundation in full stack web development, with particular focus on ${techText}.
 
-${candidateSummary}
+During my internship at SkillHigh, I developed scalable dashboard components and connected RESTful API routers. These experiences have equipped me with the practical skills necessary to contribute immediately to ${companyName}'s engineering goals.
 
-I possess a solid understanding of software engineering fundamentals and have completed multiple projects demonstrating clean code practices. I would be honored to contribute to the high standard of engineering at ${companyName}.
-
-For details regarding my work, please refer to my developer links:
+My portfolio and repositories are available below for your review:
 ${linksBlock || '[Insert portfolio/github links here]'}
 
-I have attached my resume for your review and consideration. I would appreciate the opportunity to discuss my qualifications with you in an interview.
+I have attached my resume for your convenience. I would welcome the opportunity to discuss my qualification further in an interview. Thank you for your time and consideration.
 
-Respectfully,
+Sincerely,
 
 [Your Name]
 [Your Email Address]
 [Your Phone Number]`;
         } else if (tone === 'conversational') {
-          subject = `Hi ${recipient} - CS Student & Aspiring ${jobRole} Intern at ${companyName}`;
-          intro = `I hope you're having a great week! I wanted to reach out because I'm a big fan of ${companyName}'s work, especially how you guys use ${techText}. I'm currently studying CS at GGITS and looking for a ${jobRole} internship, and I'd love to connect.`;
+          subject = `Quick question regarding ${companyName}'s tech stack`;
+          const intro = `I was reading about ${companyName}'s engineering approach and saw that you utilize ${techText}. As a student and developer, I've built several projects with this exact stack and love how it enables clean code.`;
           
           emailBody = `Hi ${recipient},
 
@@ -216,7 +283,7 @@ Warmly,
         } else {
           // tech-focused
           subject = `Internship Inquiry: ${jobRole} - ${companyName} (${techText})`;
-          intro = `I noticed your team at ${companyName} is working on exciting systems and products, particularly leveraging ${techText}. As an aspiring engineer, I would love the opportunity to contribute to this work as a ${jobRole} intern.`;
+          const intro = `I noticed your team at ${companyName} is working on exciting systems and products, particularly leveraging ${techText}. As an aspiring engineer, I would love the opportunity to contribute to this work as a ${jobRole} intern.`;
           
           emailBody = `Dear ${recipient},
 
