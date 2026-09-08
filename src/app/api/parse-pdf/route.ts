@@ -1,6 +1,61 @@
 import { NextResponse } from 'next/server';
-import * as pdfModule from 'pdf-parse';
-import path from 'path';
+import zlib from 'zlib';
+
+// Fallback pure-JS PDF stream extractor in case native binary/worker packages fail in serverless
+function extractPdfRawText(buffer: Buffer): string {
+  const content = buffer.toString('binary');
+  const extracted: string[] = [];
+
+  // 1. Search for uncompressed text operator sequences: (text) Tj
+  const rawMatches = content.match(/\(([^)]+)\)\s*Tj/g);
+  if (rawMatches) {
+    for (const m of rawMatches) {
+      const sub = m.match(/\(([^)]+)\)\s*Tj/);
+      if (sub && sub[1] && sub[1].trim()) {
+        extracted.push(sub[1]);
+      }
+    }
+  }
+
+  // 2. Search for FlateDecode / zlib compressed streams
+  const streamRegex = /stream\r?\n([\s\S]*?)\r?\nendstream/g;
+  let match: RegExpExecArray | null;
+  while ((match = streamRegex.exec(content)) !== null) {
+    try {
+      const rawStream = Buffer.from(match[1], 'binary');
+      const decompressed = zlib.inflateSync(rawStream).toString('utf-8');
+      
+      // Match (Text) Tj
+      const streamTextMatches = decompressed.match(/\(([^)]+)\)\s*Tj/g);
+      if (streamTextMatches) {
+        for (const sm of streamTextMatches) {
+          const sub = sm.match(/\(([^)]+)\)\s*Tj/);
+          if (sub && sub[1] && sub[1].trim()) {
+            extracted.push(sub[1]);
+          }
+        }
+      }
+
+      // Match array format [(Text) -10 (More)] TJ
+      const arrayMatches = decompressed.match(/\[(.*?)\]\s*TJ/g);
+      if (arrayMatches) {
+        for (const am of arrayMatches) {
+          const innerMatches = am.match(/\(([^)]+)\)/g);
+          if (innerMatches) {
+            for (const im of innerMatches) {
+              const cleaned = im.replace(/^\(|\)$/g, '').trim();
+              if (cleaned) extracted.push(cleaned);
+            }
+          }
+        }
+      }
+    } catch {
+      // Stream is not zlib compressed or is image data, skip silently
+    }
+  }
+
+  return extracted.join(' ').replace(/\s+/g, ' ').trim();
+}
 
 export async function POST(request: Request) {
   try {
@@ -12,55 +67,40 @@ export async function POST(request: Request) {
 
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
-    
     let text = '';
-    
-    // Resolve the parser function or class safely
-    const pdfParser = (pdfModule as any).PDFParse || pdfModule;
-    
-    console.log("PDF parser resolved type:", typeof pdfParser, pdfParser.name || 'anonymous');
-    
-    // Dynamically resolve and set the worker path using a file:// schema
+
+    // Attempt 1: Try pdf-parse module safely without external worker overrides
     try {
-      const rawPath = path.join(process.cwd(), 'node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs');
-      const normalizedPath = rawPath.replace(/\\/g, '/');
-      const workerUrl = normalizedPath.startsWith('/')
-        ? `file://${normalizedPath}`
-        : `file:///${normalizedPath}`;
-        
-      console.log("Configuring PDF worker URL:", workerUrl);
-      if (pdfParser.setWorker) {
-        pdfParser.setWorker(workerUrl);
+      const pdfModule: any = await import('pdf-parse');
+      const PDFParserClass = pdfModule.PDFParse || pdfModule.default || pdfModule;
+
+      if (typeof PDFParserClass === 'function') {
+        try {
+          // Check if it can be called as a constructor
+          const instance = new (PDFParserClass as any)({ data: buffer });
+          if (instance && typeof instance.getText === 'function') {
+            const parsed = await instance.getText();
+            text = (parsed && parsed.text) ? parsed.text : '';
+          }
+        } catch {
+          // If constructor fails, try calling as normal async function
+          const parsed = await PDFParserClass(buffer);
+          text = (parsed && parsed.text) ? parsed.text : '';
+        }
       }
-    } catch (workerErr: any) {
-      console.warn("Failed to set worker URL, trying default load:", workerErr.message);
+    } catch (moduleErr: any) {
+      console.warn('pdf-parse library execution failed, falling back to pure extractor:', moduleErr.message);
     }
 
-    try {
-      // 1. Try class instantiation pattern using dynamic Function constructor
-      // This bypasses SWC/Turbopack ES5 constructor compilation bugs
-      const constructClass = new Function('Parser', 'options', 'return new Parser(options);');
-      const instance = constructClass(pdfParser, { data: buffer });
-      
-      const parsed = await instance.getText();
-      text = parsed.text || '';
-      console.log("Class pattern succeeded. Extracted length:", text.length);
-    } catch (err: any) {
-      console.warn('Class pattern failed, falling back to function pattern:', err.message);
-      // 2. Fallback to traditional function pattern if class pattern fails
-      try {
-        const parsed = await (pdfParser as any)(buffer);
-        text = parsed.text || '';
-        console.log("Function pattern succeeded. Extracted length:", text.length);
-      } catch (nestedErr: any) {
-        console.error('All PDF parsing patterns failed:', nestedErr.message);
-        throw new Error('Failed to parse PDF: no compatible function or class matches.');
-      }
+    // Attempt 2: If library returned empty or failed, use pure JS stream extractor
+    if (!text || text.trim().length === 0) {
+      console.log('Using pure JS fallback stream extractor...');
+      text = extractPdfRawText(buffer);
     }
 
-    return NextResponse.json({ text });
+    return NextResponse.json({ text: text || '' });
   } catch (error) {
-    console.error('Error parsing PDF:', error);
-    return NextResponse.json({ error: 'Failed to parse PDF' }, { status: 500 });
+    console.error('Error in parse-pdf route:', error);
+    return NextResponse.json({ error: 'Failed to parse PDF', text: '' }, { status: 500 });
   }
 }
